@@ -17,6 +17,9 @@ const AdminEvents = () => {
   // States for new features
   const [newExpense, setNewExpense] = useState({ description: '', amount: '' });
   const [clientSearch, setClientSearch] = useState('');
+  
+  const [inviteTab, setInviteTab] = useState<'all' | 'invited' | 'rsvp' | 'attended'>('all');
+  const [inviteSort, setInviteSort] = useState<'priority' | 'alphabetical' | 'rm'>('priority');
 
   const fetchData = async () => {
     try {
@@ -85,6 +88,26 @@ const AdminEvents = () => {
     if (diffDays > 0) return `T-${diffDays} days`;
     if (diffDays === 0) return 'T-0 (Today!)';
     return `T+${Math.abs(diffDays)} (Past)`;
+  };
+
+  const sortClients = (clientList: any[]) => {
+    return [...clientList].sort((a, b) => {
+      if (inviteSort === 'priority') {
+        const priorityScore: Record<string, number> = { 'VVIP': 4, 'VIP': 3, 'Important': 2, 'Normal': 1 };
+        const scoreA = priorityScore[a.priority] || 0;
+        const scoreB = priorityScore[b.priority] || 0;
+        if (scoreA !== scoreB) return scoreB - scoreA;
+      }
+      if (inviteSort === 'rm') {
+        const rmA = a.rm || '';
+        const rmB = b.rm || '';
+        if (rmA !== rmB) return rmA.localeCompare(rmB);
+      }
+      // Default to alphabetical by name
+      const nameA = a.name || '';
+      const nameB = b.name || '';
+      return nameA.localeCompare(nameB);
+    });
   };
 
   const handleInviteClient = async (eventId: string, clientId: string) => {
@@ -211,83 +234,126 @@ const AdminEvents = () => {
 
           {activeTab === 'invites' && (
             <div>
-              <div className="flex justify-between items-end mb-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
                 <div>
                   <h3 className="text-xl font-bold">Client Invite List</h3>
                   <p className="opacity-70 text-sm">Manage invites, RSVPs, and headcounts.</p>
                 </div>
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                  <input type="text" placeholder="Search clients..." className="glass-input text-sm py-1.5 min-w-[200px]" value={clientSearch} onChange={e => setClientSearch(e.target.value)} />
+                  <select className="glass-input text-sm py-1.5" value={inviteSort} onChange={e => setInviteSort(e.target.value as any)}>
+                    <option value="priority">Sort: Importance</option>
+                    <option value="alphabetical">Sort: A-Z</option>
+                    <option value="rm">Sort: RM</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Available Clients to Invite */}
-                <div className="lg:col-span-1 border-r border-black/10 dark:border-white/10 pr-6">
-                  <input type="text" placeholder="Search clients to invite..." className="glass-input mb-4" value={clientSearch} onChange={e => setClientSearch(e.target.value)} />
-                  <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                    {clients.filter(c => c.name?.toLowerCase().includes(clientSearch.toLowerCase())).map(client => {
-                      const isInvited = (event.invitees || []).some((i: any) => i.clientId === client.id);
-                      if (isInvited) return null;
-                      return (
-                        <div key={client.id} className="flex justify-between items-center p-2 bg-black/5 dark:bg-white/5 rounded">
-                          <div>
-                            <p className="font-bold text-sm">{client.name}</p>
-                            <p className="text-xs opacity-70">{client.rm || 'No RM'}</p>
-                          </div>
-                          <button onClick={() => handleInviteClient(event.id, client.id)} className="text-xs bg-primary text-white px-2 py-1 rounded">+</button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+              {/* Sub-tabs */}
+              <div className="flex gap-2 mb-4 border-b border-black/10 dark:border-white/10 pb-2 overflow-x-auto">
+                {[
+                  { id: 'all', label: 'All Clients (Uninvited)' },
+                  { id: 'invited', label: 'Invited' },
+                  { id: 'rsvp', label: 'RSVP Accepted' },
+                  { id: 'attended', label: 'Attended' },
+                  { id: 'declined', label: 'Declined' }
+                ].map(tab => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setInviteTab(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-t-lg text-sm font-bold whitespace-nowrap transition-colors ${inviteTab === tab.id ? 'bg-primary text-white' : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-70'}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-                {/* Manage Invites */}
-                <div className="lg:col-span-2 overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-black/10 dark:border-white/10 text-sm opacity-70">
-                        <th className="pb-2">Client</th>
-                        <th className="pb-2">Status</th>
-                        <th className="pb-2">Guests</th>
-                        <th className="pb-2">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(event.invitees || []).map((inv: any) => {
-                        const client = clients.find(c => c.id === inv.clientId);
-                        if (!client) return null;
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-black/10 dark:border-white/10 text-sm opacity-70">
+                      <th className="pb-2">Client Details</th>
+                      <th className="pb-2">Importance</th>
+                      {inviteTab !== 'all' && (
+                        <>
+                          <th className="pb-2">Status</th>
+                          <th className="pb-2">Guests</th>
+                        </>
+                      )}
+                      <th className="pb-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const searched = clients.filter(c => c.name?.toLowerCase().includes(clientSearch.toLowerCase()));
+                      const sorted = sortClients(searched);
+                      
+                      let displayed = [];
+                      if (inviteTab === 'all') {
+                        displayed = sorted.filter(c => !(event.invitees || []).some((i: any) => i.clientId === c.id));
+                      } else {
+                        const targetStatus = inviteTab === 'rsvp' ? 'rsvp_accepted' : inviteTab;
+                        displayed = sorted.filter(c => {
+                          const inv = (event.invitees || []).find((i: any) => i.clientId === c.id);
+                          return inv && inv.status === targetStatus;
+                        });
+                      }
+
+                      if (displayed.length === 0) {
+                        return <tr><td colSpan={5} className="py-8 text-center opacity-50">No clients found in this category.</td></tr>;
+                      }
+
+                      return displayed.map(client => {
+                        const inv = (event.invitees || []).find((i: any) => i.clientId === client.id);
+                        
                         return (
-                          <tr key={inv.clientId} className="border-b border-black/5 dark:border-white/5">
-                            <td className="py-3 font-bold">{client.name}</td>
+                          <tr key={client.id} className="border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                             <td className="py-3">
-                              <select 
-                                className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider border-none focus:ring-0 ${inv.status === 'attended' ? 'bg-green-500/20 text-green-700' : inv.status === 'rsvp_accepted' ? 'bg-yellow-500/20 text-yellow-700' : 'bg-black/10 text-black dark:text-white'}`}
-                                value={inv.status}
-                                onChange={(e) => handleUpdateRSVP(event.id, inv.clientId, e.target.value, inv.guestCount)}
-                              >
-                                <option value="invited" className="text-black">Invited</option>
-                                <option value="rsvp_accepted" className="text-black">RSVP Accepted</option>
-                                <option value="attended" className="text-black">Attended</option>
-                              </select>
+                              <p className="font-bold">{client.name}</p>
+                              <p className="text-xs opacity-70">RM: {client.rm || 'None'}</p>
                             </td>
                             <td className="py-3">
-                              <input 
-                                type="number" 
-                                min="0" 
-                                className="w-16 bg-black/5 dark:bg-white/5 rounded px-2 py-1 text-sm border border-black/10" 
-                                value={inv.guestCount}
-                                onChange={(e) => handleUpdateRSVP(event.id, inv.clientId, inv.status, parseInt(e.target.value) || 0)}
-                                disabled={inv.status === 'invited'}
-                              />
+                              <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-1 rounded font-bold">{client.priority}</span>
                             </td>
-                            <td className="py-3">
-                              <button onClick={() => handleRemoveInvitee(event.id, inv.clientId)} className="text-red-500 text-xs hover:underline">Remove</button>
+                            {inviteTab !== 'all' && inv && (
+                              <>
+                                <td className="py-3">
+                                  <select 
+                                    className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider border-none focus:ring-0 ${inv.status === 'attended' ? 'bg-green-500/20 text-green-700' : inv.status === 'rsvp_accepted' ? 'bg-yellow-500/20 text-yellow-700' : inv.status === 'declined' ? 'bg-red-500/20 text-red-700' : 'bg-black/10 text-black dark:text-white'}`}
+                                    value={inv.status}
+                                    onChange={(e) => handleUpdateRSVP(event.id, client.id, e.target.value, inv.guestCount)}
+                                  >
+                                    <option value="invited" className="text-black">Invited</option>
+                                    <option value="rsvp_accepted" className="text-black">RSVP Accepted</option>
+                                    <option value="attended" className="text-black">Attended</option>
+                                    <option value="declined" className="text-black">Declined</option>
+                                  </select>
+                                </td>
+                                <td className="py-3">
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    className="w-16 bg-black/5 dark:bg-white/5 rounded px-2 py-1 text-sm border border-black/10" 
+                                    value={inv.guestCount}
+                                    onChange={(e) => handleUpdateRSVP(event.id, client.id, inv.status, parseInt(e.target.value) || 0)}
+                                    disabled={inv.status === 'invited' || inv.status === 'declined'}
+                                  />
+                                </td>
+                              </>
+                            )}
+                            <td className="py-3 text-right">
+                              {inviteTab === 'all' ? (
+                                <button onClick={() => handleInviteClient(event.id, client.id)} className="btn-primary text-xs py-1 px-3">Invite</button>
+                              ) : (
+                                <button onClick={() => handleRemoveInvitee(event.id, client.id)} className="text-red-500 text-xs hover:underline font-bold">Remove</button>
+                              )}
                             </td>
                           </tr>
                         );
-                      })}
-                      {(event.invitees || []).length === 0 && <tr><td colSpan={4} className="py-4 text-center opacity-50">No clients invited yet.</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
+                      });
+                    })()}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
