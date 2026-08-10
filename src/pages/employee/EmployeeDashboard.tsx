@@ -228,7 +228,7 @@ const EmployeeDashboard = () => {
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
             >
-              {events.map(ev => <option key={ev.id} value={ev.id} className="text-black">{ev.name}</option>)}
+              {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
             </select>
           </div>
 

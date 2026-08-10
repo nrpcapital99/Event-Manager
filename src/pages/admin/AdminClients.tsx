@@ -140,6 +140,8 @@ const AdminClients = () => {
       const weightA = priorityWeights[a.priority] || 0;
       const weightB = priorityWeights[b.priority] || 0;
       return weightB - weightA; // Descending order
+    } else if (sortBy === 'rm') {
+      return (a.rm || '').localeCompare(b.rm || '');
     }
     return 0;
   });
@@ -157,8 +159,9 @@ const AdminClients = () => {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
-            <option value="name" className="text-black">Sort by Name</option>
-            <option value="priority" className="text-black">Sort by Priority</option>
+            <option value="name" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort by Name</option>
+            <option value="priority" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort by Priority</option>
+            <option value="rm" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort by RM</option>
           </select>
           <input 
             type="text" 
@@ -280,10 +283,10 @@ const AdminClients = () => {
                 <div>
                   <label className="text-sm font-medium mb-1 block opacity-80">Priority</label>
                   <select className="glass-input appearance-none bg-white dark:bg-black/20" value={newClient.priority} onChange={e => setNewClient({...newClient, priority: e.target.value})}>
-                    <option value="VVIP" className="text-black">VVIP</option>
-                    <option value="VIP" className="text-black">VIP</option>
-                    <option value="Important" className="text-black">Important</option>
-                    <option value="Normal" className="text-black">Normal</option>
+                    <option value="VVIP" className="bg-white dark:bg-slate-900 text-black dark:text-white">VVIP</option>
+                    <option value="VIP" className="bg-white dark:bg-slate-900 text-black dark:text-white">VIP</option>
+                    <option value="Important" className="bg-white dark:bg-slate-900 text-black dark:text-white">Important</option>
+                    <option value="Normal" className="bg-white dark:bg-slate-900 text-black dark:text-white">Normal</option>
                   </select>
                 </div>
               </div>

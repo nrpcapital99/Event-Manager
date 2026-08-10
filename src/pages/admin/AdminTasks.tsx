@@ -202,8 +202,8 @@ const AdminTasks = () => {
             value={selectedEventForGantt}
             onChange={(e) => setSelectedEventForGantt(e.target.value)}
           >
-            <option value="" className="text-black">Select Event to View</option>
-            {events.map(ev => <option key={ev.id} value={ev.id} className="text-black">{ev.name}</option>)}
+            <option value="" className="bg-white dark:bg-slate-900 text-black dark:text-white">Select Event to View</option>
+            {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
           </select>
         </div>
         
@@ -306,8 +306,8 @@ const AdminTasks = () => {
             <div className="flex items-center gap-2 text-sm">
               <span className="opacity-70">Sort By:</span>
               <select className="glass-input !w-auto !py-1" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                <option value="priority" className="text-black">Priority Order</option>
-                <option value="dueDate" className="text-black">Due Date</option>
+                <option value="priority" className="bg-white dark:bg-slate-900 text-black dark:text-white">Priority Order</option>
+                <option value="dueDate" className="bg-white dark:bg-slate-900 text-black dark:text-white">Due Date</option>
               </select>
             </div>
           )}
@@ -416,8 +416,8 @@ const AdminTasks = () => {
             <form onSubmit={handleSaveTask} className="space-y-4">
               
               <select required className="glass-input appearance-none bg-white dark:bg-black/20" value={newTask.eventId} onChange={e => setNewTask({...newTask, eventId: e.target.value})}>
-                <option value="" disabled className="text-black">1. Select Event</option>
-                {events.map(ev => <option key={ev.id} value={ev.id} className="text-black">{ev.name}</option>)}
+                <option value="" disabled className="bg-white dark:bg-slate-900 text-black dark:text-white">1. Select Event</option>
+                {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
               </select>
 
               <input type="text" placeholder="Task Title (e.g. Setup Mics)" required className="glass-input" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} />
@@ -463,13 +463,13 @@ const AdminTasks = () => {
               </div>
 
               <select required className="glass-input appearance-none bg-white dark:bg-black/20" value={newTask.category} onChange={e => setNewTask({...newTask, category: e.target.value})}>
-                <option value="logistics" className="text-black">Logistics (T-3)</option>
-                <option value="equipment" className="text-black">Equipment & A/V (T-7)</option>
-                <option value="marketing" className="text-black">Marketing (T-14)</option>
-                <option value="catering" className="text-black">Catering & Food (T-10)</option>
-                <option value="entertainment" className="text-black">Entertainment & Talent (T-21)</option>
-                <option value="security" className="text-black">Security (T-5)</option>
-                <option value="seating" className="text-black">Seating & Bookings (T-1)</option>
+                <option value="logistics" className="bg-white dark:bg-slate-900 text-black dark:text-white">Logistics (T-3)</option>
+                <option value="equipment" className="bg-white dark:bg-slate-900 text-black dark:text-white">Equipment & A/V (T-7)</option>
+                <option value="marketing" className="bg-white dark:bg-slate-900 text-black dark:text-white">Marketing (T-14)</option>
+                <option value="catering" className="bg-white dark:bg-slate-900 text-black dark:text-white">Catering & Food (T-10)</option>
+                <option value="entertainment" className="bg-white dark:bg-slate-900 text-black dark:text-white">Entertainment & Talent (T-21)</option>
+                <option value="security" className="bg-white dark:bg-slate-900 text-black dark:text-white">Security (T-5)</option>
+                <option value="seating" className="bg-white dark:bg-slate-900 text-black dark:text-white">Seating & Bookings (T-1)</option>
               </select>
 
               <div>
@@ -480,13 +480,13 @@ const AdminTasks = () => {
               <div>
                 <label className="text-sm font-medium mb-1 block opacity-80">Manual Color Override (Optional)</label>
                 <select className="glass-input appearance-none bg-white dark:bg-black/20" value={newTask.manualColor} onChange={e => setNewTask({...newTask, manualColor: e.target.value})}>
-                  <option value="" className="text-black">Auto (Based on Timeline)</option>
-                  <option value="amber" className="text-black">Amber (Pending)</option>
-                  <option value="red" className="text-black">Red (Overdue)</option>
-                  <option value="green" className="text-black">Green (Completed On Time)</option>
-                  <option value="yellow" className="text-black">Yellow (Completed Late)</option>
-                  <option value="blue" className="text-black">Custom Blue</option>
-                  <option value="purple" className="text-black">Custom Purple</option>
+                  <option value="" className="bg-white dark:bg-slate-900 text-black dark:text-white">Auto (Based on Timeline)</option>
+                  <option value="amber" className="bg-white dark:bg-slate-900 text-black dark:text-white">Amber (Pending)</option>
+                  <option value="red" className="bg-white dark:bg-slate-900 text-black dark:text-white">Red (Overdue)</option>
+                  <option value="green" className="bg-white dark:bg-slate-900 text-black dark:text-white">Green (Completed On Time)</option>
+                  <option value="yellow" className="bg-white dark:bg-slate-900 text-black dark:text-white">Yellow (Completed Late)</option>
+                  <option value="blue" className="bg-white dark:bg-slate-900 text-black dark:text-white">Custom Blue</option>
+                  <option value="purple" className="bg-white dark:bg-slate-900 text-black dark:text-white">Custom Purple</option>
                 </select>
               </div>
               
