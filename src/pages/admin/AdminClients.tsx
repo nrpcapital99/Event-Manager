@@ -188,6 +188,7 @@ const AdminClients = () => {
         {filteredClients.map(client => {
           // Calculate event stats for this client
           // We need to look through all events to see where this client is in the invite list
+          const invitedEvents = events.filter(e => e.invitees?.some((inv: any) => inv.clientId === client.id));
           const registeredEvents = events.filter(e => e.invitees?.some((inv: any) => inv.clientId === client.id && (inv.status === 'rsvp_accepted' || inv.status === 'attended')));
           const attendedEvents = events.filter(e => e.invitees?.some((inv: any) => inv.clientId === client.id && inv.status === 'attended'));
 
@@ -231,6 +232,10 @@ const AdminClients = () => {
               <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-3 rounded-lg">
                 <h4 className="text-xs font-bold uppercase tracking-wider mb-2 opacity-70">Event History</h4>
                 <div className="flex justify-between text-sm">
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-bold text-yellow-500">{invitedEvents.length}</span>
+                    <span className="text-[10px] uppercase opacity-70">Invited</span>
+                  </div>
                   <div className="flex flex-col items-center">
                     <span className="text-lg font-bold text-primary">{registeredEvents.length}</span>
                     <span className="text-[10px] uppercase opacity-70">Registered</span>

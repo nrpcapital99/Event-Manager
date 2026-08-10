@@ -64,9 +64,9 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
         <div className="flex flex-wrap gap-3 w-full md:w-auto">
           <input type="text" placeholder="Search clients..." className="glass-input text-sm py-1.5 min-w-[200px]" value={clientSearch} onChange={e => setClientSearch(e.target.value)} />
           <select className="glass-input text-sm py-1.5" value={inviteSort} onChange={e => setInviteSort(e.target.value as any)}>
-            <option value="priority">Sort: Importance</option>
-            <option value="alphabetical">Sort: A-Z</option>
-            <option value="rm">Sort: RM</option>
+            <option value="priority" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort: Importance</option>
+            <option value="alphabetical" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort: A-Z</option>
+            <option value="rm" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort: RM</option>
           </select>
         </div>
       </div>
