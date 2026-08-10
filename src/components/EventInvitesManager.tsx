@@ -73,7 +73,7 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
 
       <div className="flex gap-2 mb-4 border-b border-black/10 dark:border-white/10 pb-2 overflow-x-auto">
         {[
-          { id: 'all', label: `All Clients (${clients.filter(c => !(event.invitees || []).some((i: any) => i.clientId === c.id)).length})` },
+          { id: 'all', label: `All Clients (${clients.length})` },
           { id: 'invited', label: `Invited (${(event.invitees || []).filter((i: any) => i.status === 'invited').length})` },
           { id: 'rsvp', label: `RSVP Accepted (${(event.invitees || []).filter((i: any) => i.status === 'rsvp_accepted').length})` },
           { id: 'attended', label: `Attended (${(event.invitees || []).filter((i: any) => i.status === 'attended').length})` },
@@ -108,7 +108,7 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
               
               let displayed = [];
               if (inviteTab === 'all') {
-                displayed = sorted.filter(c => !(event.invitees || []).some((i: any) => i.clientId === c.id));
+                displayed = sorted;
               } else {
                 const targetStatus = inviteTab === 'rsvp' ? 'rsvp_accepted' : inviteTab;
                 displayed = sorted.filter(c => {
@@ -124,10 +124,21 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
               return displayed.map(client => {
                 const inv = (event.invitees || []).find((i: any) => i.clientId === client.id);
                 
+                const rowClass = inviteTab === 'all' && inv 
+                  ? 'border-b border-black/5 dark:border-white/5 bg-green-500/5 dark:bg-green-500/10 hover:bg-green-500/10 dark:hover:bg-green-500/20 transition-colors'
+                  : 'border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors';
+                  
                 return (
-                  <tr key={client.id} className="border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                  <tr key={client.id} className={rowClass}>
                     <td className="py-3">
-                      <p className="font-bold">{client.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold">{client.name}</p>
+                        {inviteTab === 'all' && inv && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500 text-white font-bold uppercase tracking-wider">
+                            {inv.status === 'rsvp_accepted' ? 'RSVP' : inv.status}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs opacity-70">RM: {client.rm || 'None'}</p>
                     </td>
                     <td className="py-3">
@@ -146,8 +157,11 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
                     ) : null}
                     <td className="py-3 text-right">
                       <div className="flex justify-end items-center gap-2">
-                        {inviteTab === 'all' && (
+                        {inviteTab === 'all' && !inv && (
                           <button onClick={() => handleInviteClient(client.id)} className="btn-primary text-xs py-1 px-3">Invite</button>
+                        )}
+                        {inviteTab === 'all' && inv && (
+                          <button onClick={() => handleRemoveInvitee(client.id)} className="text-red-500 text-xs hover:underline font-bold">Remove</button>
                         )}
                         {inviteTab === 'invited' && (
                           <>
