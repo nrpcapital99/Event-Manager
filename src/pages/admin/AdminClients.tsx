@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
+import { LayoutGrid, List } from 'lucide-react';
 
 const AdminClients = () => {
   const [clients, setClients] = useState<any[]>([]);
@@ -22,6 +23,7 @@ const AdminClients = () => {
   });
   
   const [sortBy, setSortBy] = useState('name'); // 'name' or 'priority'
+  const [viewMode, setViewMode] = useState<'tiles' | 'list'>('tiles');
 
   const fetchData = async () => {
     try {
@@ -163,6 +165,14 @@ const AdminClients = () => {
             <option value="priority" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort by Priority</option>
             <option value="rm" className="bg-white dark:bg-slate-900 text-black dark:text-white">Sort by RM</option>
           </select>
+          <div className="flex bg-black/5 dark:bg-white/10 rounded-lg p-1">
+            <button onClick={() => setViewMode('tiles')} className={`p-2 rounded transition-colors ${viewMode === 'tiles' ? 'bg-white dark:bg-black/40 shadow text-primary' : 'opacity-50 hover:opacity-100'}`} title="Tile View">
+              <LayoutGrid size={18} />
+            </button>
+            <button onClick={() => setViewMode('list')} className={`p-2 rounded transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-black/40 shadow text-primary' : 'opacity-50 hover:opacity-100'}`} title="List View">
+              <List size={18} />
+            </button>
+          </div>
           <input 
             type="text" 
             placeholder="Search clients..." 
@@ -184,7 +194,55 @@ const AdminClients = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {viewMode === 'list' ? (
+        <div className="glass overflow-x-auto rounded-xl">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead>
+              <tr className="border-b border-black/10 dark:border-white/10 text-sm opacity-70">
+                <th className="p-4 font-medium">Name</th>
+                <th className="p-4 font-medium">Priority</th>
+                <th className="p-4 font-medium">Office</th>
+                <th className="p-4 font-medium">Phone</th>
+                <th className="p-4 font-medium">RM</th>
+                <th className="p-4 font-medium">Events (I/R/A)</th>
+                <th className="p-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredClients.map(client => {
+                const invitedEvents = events.filter(e => e.invitees?.some((inv: any) => inv.clientId === client.id));
+                const registeredEvents = events.filter(e => e.invitees?.some((inv: any) => inv.clientId === client.id && (inv.status === 'rsvp_accepted' || inv.status === 'attended')));
+                const attendedEvents = events.filter(e => e.invitees?.some((inv: any) => inv.clientId === client.id && inv.status === 'attended'));
+                
+                return (
+                  <tr key={client.id} className="border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 font-bold text-blue-600 dark:text-blue-400">{client.name}</td>
+                    <td className="p-4">
+                      <span className={`font-bold text-xs uppercase tracking-wider px-2 py-0.5 rounded ${
+                        client.priority === 'VVIP' ? 'bg-red-500/20 text-red-500' :
+                        client.priority === 'VIP' ? 'bg-purple-500/20 text-purple-500' :
+                        client.priority === 'Important' ? 'bg-blue-500/20 text-blue-500' :
+                        'bg-black/5 dark:bg-white/10'
+                      }`}>{client.priority || 'Normal'}</span>
+                    </td>
+                    <td className="p-4 text-sm">{client.office || 'N/A'}</td>
+                    <td className="p-4 text-sm">{client.phone || 'N/A'}</td>
+                    <td className="p-4 text-sm"><span className="bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded text-xs">{client.rm || 'Unassigned'}</span></td>
+                    <td className="p-4 text-sm">
+                      <span className="text-yellow-500 font-bold" title="Invited">{invitedEvents.length}</span> / <span className="text-primary font-bold" title="Registered">{registeredEvents.length}</span> / <span className="text-green-500 font-bold" title="Attended">{attendedEvents.length}</span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <button onClick={() => openEditModal(client)} className="text-xs bg-black/10 dark:bg-white/10 px-2 py-1 rounded hover:bg-black/20 dark:hover:bg-white/20 transition-colors mr-2">Edit</button>
+                      <button onClick={() => handleDelete(client.id)} className="text-xs bg-red-500/10 text-red-500 px-2 py-1 rounded hover:bg-red-500/20 transition-colors">Delete</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredClients.map(client => {
           // Calculate event stats for this client
           // We need to look through all events to see where this client is in the invite list
@@ -249,8 +307,9 @@ const AdminClients = () => {
             </div>
           );
         })}
-        {filteredClients.length === 0 && <p className="opacity-70 col-span-full text-center py-8">No clients found.</p>}
       </div>
+      )}
+      {filteredClients.length === 0 && <p className="opacity-70 col-span-full text-center py-8">No clients found.</p>}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
