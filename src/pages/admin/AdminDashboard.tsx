@@ -9,7 +9,8 @@ import AdminEvents from './AdminEvents';
 import AdminTasks from './AdminTasks';
 import AdminEmployees from './AdminEmployees';
 import AdminClients from './AdminClients';
-import { Briefcase } from 'lucide-react';
+import AdminAttendees from './AdminAttendees';
+import { Briefcase, ListOrdered } from 'lucide-react';
 
 const AdminOverview = () => {
   return (
@@ -20,6 +21,14 @@ const AdminOverview = () => {
         </div>
         <h3 className="text-2xl font-semibold mb-3">Manage Events</h3>
         <p className="opacity-80">Create and oversee all events, timelines, and high-level details.</p>
+      </Link>
+      
+      <Link to="/admin/attendees" className="glass p-8 hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-yellow-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <ListOrdered size={32} className="text-yellow-500" />
+        </div>
+        <h3 className="text-2xl font-semibold mb-3">Manage Attendees</h3>
+        <p className="opacity-80">Track invites, RSVPs, and client attendance for events.</p>
       </Link>
       
       <Link to="/admin/tasks" className="glass p-8 hover:shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:-translate-y-1 transition-all duration-300 group">
@@ -71,6 +80,7 @@ const AdminDashboard = () => {
   const navItems = [
     { path: '/admin', label: 'Overview', icon: LayoutDashboard },
     { path: '/admin/events', label: 'Events', icon: Calendar },
+    { path: '/admin/attendees', label: 'Attendees', icon: ListOrdered },
     { path: '/admin/tasks', label: 'Tasks', icon: CheckSquare },
     { path: '/admin/employees', label: 'Employees', icon: Users },
     { path: '/admin/clients', label: 'Clients', icon: Briefcase },
@@ -129,6 +139,7 @@ const AdminDashboard = () => {
         <Routes>
           <Route path="/" element={<AdminOverview />} />
           <Route path="/events" element={<AdminEvents />} />
+          <Route path="/attendees" element={<AdminAttendees />} />
           <Route path="/tasks" element={<AdminTasks />} />
           <Route path="/employees" element={<AdminEmployees />} />
           <Route path="/clients" element={<AdminClients />} />
