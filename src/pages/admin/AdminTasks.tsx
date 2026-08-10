@@ -228,8 +228,6 @@ const AdminTasks = () => {
                   </div>
                 );
               })()}
-            </div>
-            
             {/* Timeline markers */}
             {events.find(e => e.id === selectedEventForGantt) && tasks.filter(t => t.eventId === selectedEventForGantt).length > 0 && (
               <div className="absolute right-[10%] top-0 bottom-0 border-l-2 border-dashed border-red-500/50 flex flex-col justify-end pb-2 z-0">
