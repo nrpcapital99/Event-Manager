@@ -15,6 +15,7 @@ const EmployeeDashboard = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [newExpense, setNewExpense] = useState({ description: '', amount: '' });
+  const [remarksDrafts, setRemarksDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!employeeData.id) {
@@ -78,8 +79,9 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const handleSaveRemark = async (taskId: string, currentRemarks: string, newRemark: string) => {
-    if (currentRemarks === newRemark) return; // no change
+  const handleSaveRemark = async (taskId: string, currentRemarks: string) => {
+    const newRemark = remarksDrafts[taskId];
+    if (newRemark === undefined || currentRemarks === newRemark) return; // no change
     await updateDoc(doc(db, 'tasks', taskId), { remarks: newRemark });
   };
 
@@ -326,11 +328,21 @@ const EmployeeDashboard = () => {
                       <div className="mb-4">
                         <p className="text-xs font-bold opacity-50 mb-1 uppercase tracking-wider">Remarks / Updates:</p>
                         <textarea 
-                          className="w-full text-sm p-2 rounded bg-white/50 dark:bg-black/20 border border-black/10 dark:border-white/10 min-h-[60px]"
+                          className="w-full text-sm p-2 rounded bg-white/50 dark:bg-black/20 border border-black/10 dark:border-white/10 min-h-[60px] mb-2"
                           placeholder="Add your updates, issues, or reasons for delay here..."
-                          defaultValue={task.remarks || ''}
-                          onBlur={(e) => handleSaveRemark(task.id, task.remarks || '', e.target.value)}
+                          value={remarksDrafts[task.id] !== undefined ? remarksDrafts[task.id] : (task.remarks || '')}
+                          onChange={(e) => setRemarksDrafts(prev => ({...prev, [task.id]: e.target.value}))}
                         />
+                        {remarksDrafts[task.id] !== undefined && remarksDrafts[task.id] !== (task.remarks || '') && (
+                          <div className="flex justify-end">
+                            <button 
+                              onClick={() => handleSaveRemark(task.id, task.remarks || '')}
+                              className="text-xs bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded font-bold transition-colors"
+                            >
+                              Update Remarks
+                            </button>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex items-center justify-between border-t border-black/10 dark:border-white/10 pt-3">
