@@ -172,7 +172,7 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
                         )}
                         {inviteTab === 'rsvp' && (
                           <>
-                            <button onClick={() => handleUpdateRSVP(client.id, 'attended', inv.guestCount)} className="bg-green-500 text-white font-bold rounded text-xs py-1 px-3 hover:bg-green-600">Present</button>
+                            <button onClick={() => handleUpdateRSVP(client.id, 'attended', inv.guestCount)} className="bg-green-500 text-white font-bold rounded text-xs py-1 px-3 hover:bg-green-600">Attended</button>
                             <button onClick={() => handleRemoveInvitee(client.id)} className="text-red-500 text-xs hover:underline font-bold ml-2">Remove</button>
                           </>
                         )}
