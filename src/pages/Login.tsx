@@ -59,7 +59,7 @@ const Login = () => {
       
       <div className="relative z-10">
         <h2 className="text-3xl font-light tracking-wider mb-6 text-center">
-          Event<span className="font-bold">Manager</span>
+          NRP Event<span className="font-bold">Manager</span>
         </h2>
         
         <div className="flex gap-4 mb-8">

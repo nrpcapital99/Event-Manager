@@ -93,7 +93,7 @@ const AdminDashboard = () => {
       <div className="glass w-full md:w-64 h-full flex flex-col justify-between p-6">
         <div>
           <h2 className="text-2xl font-bold tracking-wider mb-8 text-transparent bg-clip-text bg-gradient-to-r from-primary to-pink-500">
-            EventManager
+            NRP EventManager
           </h2>
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => {
