@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 
 const AdminClients = () => {
   const [clients, setClients] = useState<any[]>([]);
@@ -12,6 +13,9 @@ const AdminClients = () => {
   
   const [newClient, setNewClient] = useState({
     name: '',
+    email: '',
+    phone: '',
+    dob: '',
     priority: 'Normal',
     office: '',
     rm: ''
@@ -48,7 +52,7 @@ const AdminClients = () => {
       }
       setShowModal(false);
       setEditingClient(null);
-      setNewClient({ name: '', priority: 'Normal', office: '', rm: '' });
+      setNewClient({ name: '', email: '', phone: '', dob: '', priority: 'Normal', office: '', rm: '' });
       fetchData();
     } catch (err: any) {
       setError(err.message || "Failed to save client.");
@@ -59,6 +63,9 @@ const AdminClients = () => {
     setEditingClient(client);
     setNewClient({
       name: client.name || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      dob: client.dob || '',
       priority: client.priority || 'Normal',
       office: client.office || '',
       rm: client.rm || ''
@@ -71,6 +78,54 @@ const AdminClients = () => {
       await deleteDoc(doc(db, 'clients', id));
       fetchData();
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        
+        let importedCount = 0;
+        // Skip first row (index 0)
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length < 2) continue;
+
+          const name = row[1] ? String(row[1]).trim() : '';
+          const email = row[2] ? String(row[2]).trim() : '';
+          const mobile = row[3] ? String(row[3]).trim() : '';
+          const rm = row[4] ? String(row[4]).trim() : '';
+
+          if (name) {
+            await addDoc(collection(db, 'clients'), {
+              name,
+              email,
+              phone: mobile,
+              rm,
+              priority: 'Normal',
+              office: '',
+              dob: ''
+            });
+            importedCount++;
+          }
+        }
+        
+        alert(`Successfully imported ${importedCount} clients!`);
+        fetchData();
+      } catch (err: any) {
+        alert("Error parsing file: " + err.message);
+      }
+      e.target.value = '';
+    };
+    reader.readAsBinaryString(file);
   };
 
   const filteredClients = clients.filter(c => 
@@ -112,9 +167,13 @@ const AdminClients = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <label className="btn-secondary whitespace-nowrap cursor-pointer">
+            + Import Excel
+            <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} />
+          </label>
           <button onClick={() => {
             setEditingClient(null);
-            setNewClient({ name: '', priority: 'Normal', office: '', rm: '' });
+            setNewClient({ name: '', email: '', phone: '', dob: '', priority: 'Normal', office: '', rm: '' });
             setShowModal(true);
           }} className="btn-primary whitespace-nowrap">
             + Add Client
@@ -151,6 +210,14 @@ const AdminClients = () => {
                 <div className="flex justify-between items-center text-sm border-b border-black/5 dark:border-white/5 pb-2">
                   <span className="opacity-70">Office:</span>
                   <span className="font-medium">{client.office || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-black/5 dark:border-white/5 pb-2">
+                  <span className="opacity-70">Phone:</span>
+                  <span className="font-medium">{client.phone || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-black/5 dark:border-white/5 pb-2">
+                  <span className="opacity-70">DOB:</span>
+                  <span className="font-medium">{client.dob || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm pb-2">
                   <span className="opacity-70">RM:</span>
@@ -194,14 +261,31 @@ const AdminClients = () => {
                 <input type="text" required className="glass-input" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
               </div>
               
-              <div>
-                <label className="text-sm font-medium mb-1 block opacity-80">Priority</label>
-                <select className="glass-input appearance-none bg-white dark:bg-black/20" value={newClient.priority} onChange={e => setNewClient({...newClient, priority: e.target.value})}>
-                  <option value="VVIP" className="text-black">VVIP</option>
-                  <option value="VIP" className="text-black">VIP</option>
-                  <option value="Important" className="text-black">Important</option>
-                  <option value="Normal" className="text-black">Normal</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block opacity-80">Email</label>
+                  <input type="email" placeholder="e.g. email@example.com" className="glass-input" value={newClient.email} onChange={e => setNewClient({...newClient, email: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block opacity-80">Phone No</label>
+                  <input type="text" placeholder="e.g. +1 234 567 890" className="glass-input" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block opacity-80">Date of Birth</label>
+                  <input type="date" className="glass-input" value={newClient.dob} onChange={e => setNewClient({...newClient, dob: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block opacity-80">Priority</label>
+                  <select className="glass-input appearance-none bg-white dark:bg-black/20" value={newClient.priority} onChange={e => setNewClient({...newClient, priority: e.target.value})}>
+                    <option value="VVIP" className="text-black">VVIP</option>
+                    <option value="VIP" className="text-black">VIP</option>
+                    <option value="Important" className="text-black">Important</option>
+                    <option value="Normal" className="text-black">Normal</option>
+                  </select>
+                </div>
               </div>
               
               <div>
