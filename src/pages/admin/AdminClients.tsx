@@ -12,10 +12,12 @@ const AdminClients = () => {
   
   const [newClient, setNewClient] = useState({
     name: '',
-    aum: '',
+    priority: 'Normal',
     office: '',
     rm: ''
   });
+  
+  const [sortBy, setSortBy] = useState('name'); // 'name' or 'priority'
 
   const fetchData = async () => {
     try {
@@ -46,7 +48,7 @@ const AdminClients = () => {
       }
       setShowModal(false);
       setEditingClient(null);
-      setNewClient({ name: '', aum: '', office: '', rm: '' });
+      setNewClient({ name: '', priority: 'Normal', office: '', rm: '' });
       fetchData();
     } catch (err: any) {
       setError(err.message || "Failed to save client.");
@@ -57,7 +59,7 @@ const AdminClients = () => {
     setEditingClient(client);
     setNewClient({
       name: client.name || '',
-      aum: client.aum || '',
+      priority: client.priority || 'Normal',
       office: client.office || '',
       rm: client.rm || ''
     });
@@ -75,16 +77,34 @@ const AdminClients = () => {
     c.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
     c.rm?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.office?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ).sort((a, b) => {
+    if (sortBy === 'name') {
+      return (a.name || '').localeCompare(b.name || '');
+    } else if (sortBy === 'priority') {
+      const priorityWeights: Record<string, number> = { 'VVIP': 4, 'VIP': 3, 'Important': 2, 'Normal': 1 };
+      const weightA = priorityWeights[a.priority] || 0;
+      const weightB = priorityWeights[b.priority] || 0;
+      return weightB - weightA; // Descending order
+    }
+    return 0;
+  });
 
   return (
     <div className="animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-black/10 dark:border-white/20 pb-4 gap-4">
         <div>
           <h2 className="text-3xl font-bold">Client Directory</h2>
-          <p className="opacity-70 mt-1">Manage client profiles, AUM, and Relationship Managers.</p>
+          <p className="opacity-70 mt-1">Manage client profiles, priorities, and Relationship Managers.</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto">
+          <select 
+            className="glass-input !w-auto"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="name" className="text-black">Sort by Name</option>
+            <option value="priority" className="text-black">Sort by Priority</option>
+          </select>
           <input 
             type="text" 
             placeholder="Search clients..." 
@@ -94,7 +114,7 @@ const AdminClients = () => {
           />
           <button onClick={() => {
             setEditingClient(null);
-            setNewClient({ name: '', aum: '', office: '', rm: '' });
+            setNewClient({ name: '', priority: 'Normal', office: '', rm: '' });
             setShowModal(true);
           }} className="btn-primary whitespace-nowrap">
             + Add Client
@@ -120,8 +140,13 @@ const AdminClients = () => {
               
               <div className="space-y-2 mt-4 flex-1">
                 <div className="flex justify-between items-center text-sm border-b border-black/5 dark:border-white/5 pb-2">
-                  <span className="opacity-70">AUM:</span>
-                  <span className="font-bold">{client.aum || 'N/A'}</span>
+                  <span className="opacity-70">Priority:</span>
+                  <span className={`font-bold text-xs uppercase tracking-wider px-2 py-0.5 rounded ${
+                    client.priority === 'VVIP' ? 'bg-red-500/20 text-red-500' :
+                    client.priority === 'VIP' ? 'bg-purple-500/20 text-purple-500' :
+                    client.priority === 'Important' ? 'bg-blue-500/20 text-blue-500' :
+                    'bg-black/5 dark:bg-white/10'
+                  }`}>{client.priority || 'Normal'}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm border-b border-black/5 dark:border-white/5 pb-2">
                   <span className="opacity-70">Office:</span>
@@ -170,12 +195,17 @@ const AdminClients = () => {
               </div>
               
               <div>
-                <label className="text-sm font-medium mb-1 block opacity-80">Assets Under Management (AUM)</label>
-                <input type="text" placeholder="e.g. $5M" className="glass-input" value={newClient.aum} onChange={e => setNewClient({...newClient, aum: e.target.value})} />
+                <label className="text-sm font-medium mb-1 block opacity-80">Priority</label>
+                <select className="glass-input appearance-none bg-white dark:bg-black/20" value={newClient.priority} onChange={e => setNewClient({...newClient, priority: e.target.value})}>
+                  <option value="VVIP" className="text-black">VVIP</option>
+                  <option value="VIP" className="text-black">VIP</option>
+                  <option value="Important" className="text-black">Important</option>
+                  <option value="Normal" className="text-black">Normal</option>
+                </select>
               </div>
               
               <div>
-                <label className="text-sm font-medium mb-1 block opacity-80">Office Location</label>
+                <label className="text-sm font-medium mb-1 block opacity-80">Office</label>
                 <input type="text" placeholder="e.g. New York" className="glass-input" value={newClient.office} onChange={e => setNewClient({...newClient, office: e.target.value})} />
               </div>
 
