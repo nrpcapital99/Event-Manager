@@ -362,6 +362,58 @@ const AdminEvents = () => {
             </div>
           )}
         </div>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="glass-panel w-full max-w-md animate-in zoom-in-95 duration-300">
+              <h3 className="text-2xl font-bold mb-6">{newEvent.id ? 'Edit Event' : 'Create New Event'}</h3>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/20 text-red-500 rounded-lg text-sm font-medium text-center">
+                  {error}
+                </div>
+              )}
+              
+              <form onSubmit={handleSaveEvent} className="space-y-4">
+                <input type="text" placeholder="Event Name" required className="glass-input" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} />
+                <textarea placeholder="Event Description" required className="glass-input min-h-[100px]" value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
+                
+                <div>
+                  <label className="text-sm font-medium mb-1 block opacity-80">Main Event Date</label>
+                  <input type="date" required className="glass-input" value={newEvent.eventDate} onChange={e => setNewEvent({...newEvent, eventDate: e.target.value})} />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block opacity-80">Assign Team Members</label>
+                  <div className="max-h-32 overflow-y-auto space-y-2 border border-black/10 dark:border-white/10 p-2 rounded-lg">
+                    {employees.map(emp => (
+                      <label key={emp.id} className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="accent-primary"
+                          checked={newEvent.employeeIds.includes(emp.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewEvent({...newEvent, employeeIds: [...newEvent.employeeIds, emp.id]});
+                            } else {
+                              setNewEvent({...newEvent, employeeIds: newEvent.employeeIds.filter(id => id !== emp.id)});
+                            }
+                          }}
+                        />
+                        <span className="text-sm">{emp.name} ({emp.role})</span>
+                      </label>
+                    ))}
+                    {employees.length === 0 && <p className="text-xs opacity-50">No employees found.</p>}
+                  </div>
+                </div>
+                
+                <div className="flex gap-4 mt-6 pt-4 border-t border-black/10 dark:border-white/10">
+                  <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
+                  <button type="submit" className="btn-primary flex-1">{newEvent.id ? 'Save Changes' : 'Create Event'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
