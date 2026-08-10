@@ -77,6 +77,11 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handleSaveRemark = async (taskId: string, currentRemarks: string, newRemark: string) => {
+    if (currentRemarks === newRemark) return; // no change
+    await updateDoc(doc(db, 'tasks', taskId), { remarks: newRemark });
+  };
+
   // Helper for Gantt
   const getRelativeTimeline = (task: any, parentEvent: any) => {
     if (!parentEvent || !parentEvent.eventDate) return 'N/A';
@@ -252,6 +257,16 @@ const EmployeeDashboard = () => {
                           </div>
                         </div>
                       )}
+                      
+                      <div className="mb-4">
+                        <p className="text-xs font-bold opacity-50 mb-1 uppercase tracking-wider">Remarks / Updates:</p>
+                        <textarea 
+                          className="w-full text-sm p-2 rounded bg-white/50 dark:bg-black/20 border border-black/10 dark:border-white/10 min-h-[60px]"
+                          placeholder="Add your updates, issues, or reasons for delay here..."
+                          defaultValue={task.remarks || ''}
+                          onBlur={(e) => handleSaveRemark(task.id, task.remarks || '', e.target.value)}
+                        />
+                      </div>
                       
                       <div className="flex items-center justify-between border-t border-black/10 dark:border-white/10 pt-3">
                         <span className="text-sm font-medium opacity-70">

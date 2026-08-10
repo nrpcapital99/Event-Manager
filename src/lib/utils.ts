@@ -12,7 +12,9 @@ export function getTaskStyles(task: any) {
   
   let type = '';
   
-  if (isCompleted) {
+  if (task.manualColor) {
+    type = task.manualColor;
+  } else if (isCompleted) {
     const completedAt = task.completedAt ? (task.completedAt.toDate ? task.completedAt.toDate() : new Date(task.completedAt)) : new Date();
     if (completedAt <= dueDate) {
       type = 'green';
@@ -47,12 +49,24 @@ export function getTaskStyles(task: any) {
         bar: 'bg-red-500',
         label: 'Overdue'
       };
+    case 'blue':
+      return {
+        badge: 'bg-blue-500/20 text-blue-700 dark:text-blue-400',
+        bar: 'bg-blue-500',
+        label: 'Custom Blue'
+      };
+    case 'purple':
+      return {
+        badge: 'bg-purple-500/20 text-purple-700 dark:text-purple-400',
+        bar: 'bg-purple-500',
+        label: 'Custom Purple'
+      };
     case 'amber':
     default:
       return {
         badge: 'bg-amber-500/20 text-amber-700 dark:text-amber-400',
         bar: 'bg-amber-500',
-        label: 'Pending'
+        label: task.manualColor ? 'Custom Amber' : 'Pending'
       };
   }
 }

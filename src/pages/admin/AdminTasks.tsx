@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { getTaskStyles } from '../../lib/utils';
 
 const AdminTasks = () => {
@@ -10,6 +10,8 @@ const AdminTasks = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [error, setError] = useState('');
   
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  
   const [newTask, setNewTask] = useState<{
     eventId: string;
     title: string;
@@ -17,13 +19,15 @@ const AdminTasks = () => {
     employeeIds: string[];
     category: string;
     dueDate: string;
+    manualColor: string;
   }>({
     eventId: '',
     title: '',
     description: '',
     employeeIds: [],
     category: 'logistics',
-    dueDate: ''
+    dueDate: '',
+    manualColor: ''
   });
 
   const [selectedEventForGantt, setSelectedEventForGantt] = useState<string>('');
@@ -95,10 +99,11 @@ const AdminTasks = () => {
         ...newTask,
         status: 'pending',
         completedBy: [],
-        completedAt: null
+        completedAt: null,
+        priorityOrder: Date.now() // For drag and drop sorting
       });
       setShowModal(false);
-      setNewTask({ ...newTask, title: '', description: '', employeeIds: [], dueDate: '' });
+      setNewTask({ ...newTask, title: '', description: '', employeeIds: [], dueDate: '', manualColor: '' });
       fetchData();
     } catch (err: any) {
       console.error("Error creating task", err);
@@ -124,6 +129,44 @@ const AdminTasks = () => {
     if (diffDays > 0) return `Due T-${diffDays} Days`;
     if (diffDays === 0) return `Due on Event Day`;
     return `Due T+${Math.abs(diffDays)} Days (Post Event)`;
+  };
+
+  const handleDragStart = (taskId: string) => {
+    setDraggedTaskId(taskId);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); // necessary to allow dropping
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault();
+    if (!draggedTaskId || draggedTaskId === targetTaskId) return;
+
+    const sourceTask = tasks.find(t => t.id === draggedTaskId);
+    const targetTask = tasks.find(t => t.id === targetTaskId);
+    
+    if (!sourceTask || !targetTask) return;
+    
+    // Swap priority orders
+    const sourcePriority = sourceTask.priorityOrder || 0;
+    const targetPriority = targetTask.priorityOrder || 0;
+    
+    try {
+      // Optimistic update locally
+      setTasks(prev => prev.map(t => {
+        if (t.id === sourceTask.id) return { ...t, priorityOrder: targetPriority };
+        if (t.id === targetTask.id) return { ...t, priorityOrder: sourcePriority };
+        return t;
+      }));
+      
+      await updateDoc(doc(db, 'tasks', sourceTask.id), { priorityOrder: targetPriority });
+      await updateDoc(doc(db, 'tasks', targetTask.id), { priorityOrder: sourcePriority });
+    } catch (err) {
+      console.error('Error swapping tasks:', err);
+    }
+    
+    setDraggedTaskId(null);
   };
 
   return (
@@ -243,62 +286,68 @@ const AdminTasks = () => {
       </div>
 
       <div className="glass p-6">
-        <h3 className="text-xl font-bold mb-4">All Tasks</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[800px]">
-            <thead>
-              <tr className="border-b border-black/10 dark:border-white/20 text-[var(--glass-text)] opacity-70">
-                <th className="pb-3 font-medium">Task</th>
-                <th className="pb-3 font-medium">Event</th>
-                <th className="pb-3 font-medium">Assignee</th>
-                <th className="pb-3 font-medium">Category</th>
-                <th className="pb-3 font-medium">Timeline</th>
-                <th className="pb-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map(task => {
-                const parentEvent = events.find(e => e.id === task.eventId);
+        <h3 className="text-xl font-bold mb-4">Event Task Board</h3>
+        
+        {!selectedEventForGantt ? (
+          <p className="opacity-70 text-center py-8">Select an event above to view and sort its tasks.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tasks
+              .filter(t => t.eventId === selectedEventForGantt)
+              .sort((a, b) => (a.priorityOrder || 0) - (b.priorityOrder || 0))
+              .map(task => {
                 const assignedEmps = task.employeeIds ? employees.filter(e => task.employeeIds.includes(e.id)) : [];
+                const styles = getTaskStyles(task);
                 
                 return (
-                  <tr key={task.id} className="border-b border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                    <td className="py-4">
-                      <div className="font-medium">{task.title}</div>
-                      <div className="text-sm opacity-60 truncate w-48">{task.description}</div>
-                    </td>
-                    <td className="py-4 font-medium opacity-80">
-                      {parentEvent?.name || 'Unknown Event'}
-                    </td>
-                    <td className="py-4 opacity-80">
-                      {assignedEmps.length > 0 
-                        ? <div className="flex flex-wrap gap-1">{assignedEmps.map(emp => <span key={emp.id} className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full">{emp.name}</span>)}</div> 
-                        : <span className="text-black/50 dark:text-white/50 italic">Unassigned</span>}
-                    </td>
-                    <td className="py-4 capitalize">
-                      <span className="bg-black/5 dark:bg-white/10 px-2 py-1 rounded text-xs">{task.category}</span>
-                    </td>
-                    <td className="py-4">
-                      <div className="text-sm font-medium mb-1">{getRelativeTimeline(task)}</div>
-                      <div className="text-xs opacity-60 font-mono">Due: {task.dueDate}</div>
-                    </td>
-                    <td className="py-4">
-                      {(() => {
-                        const styles = getTaskStyles(task);
-                        return (
-                          <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold inline-block`}>
-                            {styles.label}
+                  <div 
+                    key={task.id} 
+                    draggable
+                    onDragStart={() => handleDragStart(task.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, task.id)}
+                    className="p-5 border border-black/10 dark:border-white/10 rounded-lg bg-black/5 dark:bg-white/5 cursor-move hover:shadow-lg transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="font-bold text-lg">{task.title}</div>
+                      <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold`}>
+                        {styles.label}
+                      </span>
+                    </div>
+                    <p className="text-sm opacity-80 mb-4">{task.description}</p>
+                    
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {assignedEmps.length > 0 ? (
+                        assignedEmps.map(emp => (
+                          <span key={emp.id} className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                            {emp.name}
                           </span>
-                        );
-                      })()}
-                    </td>
-                  </tr>
+                        ))
+                      ) : (
+                        <span className="text-xs italic opacity-50">Unassigned</span>
+                      )}
+                    </div>
+                    
+                    {task.remarks && (
+                      <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded text-xs opacity-90">
+                        <span className="font-bold uppercase tracking-wider text-yellow-700 dark:text-yellow-400 block mb-1">Remarks / Update:</span>
+                        {task.remarks}
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center text-xs opacity-70 border-t border-black/10 dark:border-white/10 pt-3">
+                      <span>{getRelativeTimeline(task)}</span>
+                      <span>Due: {task.dueDate}</span>
+                    </div>
+                  </div>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {tasks.length === 0 && <p className="opacity-70 mt-4 text-center">No tasks assigned yet.</p>}
+            })}
+            
+            {tasks.filter(t => t.eventId === selectedEventForGantt).length === 0 && (
+              <p className="opacity-70 col-span-full text-center py-4">No tasks found for this event.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {showModal && (
@@ -369,6 +418,19 @@ const AdminTasks = () => {
               <div>
                 <label className="text-sm font-medium mb-1 block opacity-80">Task Due Date (Auto-suggested based on category)</label>
                 <input type="date" required className="glass-input" value={newTask.dueDate} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block opacity-80">Manual Color Override (Optional)</label>
+                <select className="glass-input appearance-none bg-white dark:bg-black/20" value={newTask.manualColor} onChange={e => setNewTask({...newTask, manualColor: e.target.value})}>
+                  <option value="" className="text-black">Auto (Based on Timeline)</option>
+                  <option value="amber" className="text-black">Amber (Pending)</option>
+                  <option value="red" className="text-black">Red (Overdue)</option>
+                  <option value="green" className="text-black">Green (Completed On Time)</option>
+                  <option value="yellow" className="text-black">Yellow (Completed Late)</option>
+                  <option value="blue" className="text-black">Custom Blue</option>
+                  <option value="purple" className="text-black">Custom Purple</option>
+                </select>
               </div>
               
               <div className="flex gap-4 mt-6 pt-4 border-t border-black/10 dark:border-white/10">

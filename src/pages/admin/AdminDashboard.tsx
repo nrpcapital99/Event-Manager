@@ -8,6 +8,8 @@ import { Calendar, CheckSquare, Users, LogOut, LayoutDashboard, Moon, Sun } from
 import AdminEvents from './AdminEvents';
 import AdminTasks from './AdminTasks';
 import AdminEmployees from './AdminEmployees';
+import AdminClients from './AdminClients';
+import { Briefcase } from 'lucide-react';
 
 const AdminOverview = () => {
   return (
@@ -34,6 +36,14 @@ const AdminOverview = () => {
         </div>
         <h3 className="text-2xl font-semibold mb-3">Manage Employees</h3>
         <p className="opacity-80">Generate access codes and manage event personnel.</p>
+      </Link>
+      
+      <Link to="/admin/clients" className="glass p-8 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-green-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Briefcase size={32} className="text-green-500" />
+        </div>
+        <h3 className="text-2xl font-semibold mb-3">Manage Clients</h3>
+        <p className="opacity-80">Track clients, AUM, offices, and event attendance.</p>
       </Link>
     </div>
   );
@@ -63,6 +73,7 @@ const AdminDashboard = () => {
     { path: '/admin/events', label: 'Events', icon: Calendar },
     { path: '/admin/tasks', label: 'Tasks', icon: CheckSquare },
     { path: '/admin/employees', label: 'Employees', icon: Users },
+    { path: '/admin/clients', label: 'Clients', icon: Briefcase },
   ];
 
   return (
@@ -120,6 +131,7 @@ const AdminDashboard = () => {
           <Route path="/events" element={<AdminEvents />} />
           <Route path="/tasks" element={<AdminTasks />} />
           <Route path="/employees" element={<AdminEmployees />} />
+          <Route path="/clients" element={<AdminClients />} />
         </Routes>
       </div>
 
