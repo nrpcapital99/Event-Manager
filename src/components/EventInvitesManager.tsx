@@ -73,11 +73,11 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
 
       <div className="flex gap-2 mb-4 border-b border-black/10 dark:border-white/10 pb-2 overflow-x-auto">
         {[
-          { id: 'all', label: 'All Clients (Uninvited)' },
-          { id: 'invited', label: 'Invited' },
-          { id: 'rsvp', label: 'RSVP Accepted' },
-          { id: 'attended', label: 'Attended' },
-          { id: 'declined', label: 'Declined' }
+          { id: 'all', label: `All Clients (${clients.filter(c => !(event.invitees || []).some((i: any) => i.clientId === c.id)).length})` },
+          { id: 'invited', label: `Invited (${(event.invitees || []).filter((i: any) => i.status === 'invited').length})` },
+          { id: 'rsvp', label: `RSVP Accepted (${(event.invitees || []).filter((i: any) => i.status === 'rsvp_accepted').length})` },
+          { id: 'attended', label: `Attended (${(event.invitees || []).filter((i: any) => i.status === 'attended').length})` },
+          { id: 'declined', label: `Declined (${(event.invitees || []).filter((i: any) => i.status === 'declined').length})` }
         ].map(tab => (
           <button 
             key={tab.id}
@@ -95,12 +95,9 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
             <tr className="border-b border-black/10 dark:border-white/10 text-sm opacity-70">
               <th className="pb-2">Client Details</th>
               <th className="pb-2">Importance</th>
-              {inviteTab !== 'all' && (
-                <>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2">Guests</th>
-                </>
-              )}
+              {inviteTab === 'rsvp' || inviteTab === 'attended' ? (
+                <th className="pb-2">Guests</th>
+              ) : null}
               <th className="pb-2 text-right">Actions</th>
             </tr>
           </thead>
@@ -136,38 +133,39 @@ const EventInvitesManager = ({ event, clients, onUpdate }: EventInvitesManagerPr
                     <td className="py-3">
                       <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-1 rounded font-bold">{client.priority}</span>
                     </td>
-                    {inviteTab !== 'all' && inv && (
-                      <>
-                        <td className="py-3">
-                          <select 
-                            className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider border-none focus:ring-0 ${inv.status === 'attended' ? 'bg-green-500/20 text-green-700' : inv.status === 'rsvp_accepted' ? 'bg-yellow-500/20 text-yellow-700' : inv.status === 'declined' ? 'bg-red-500/20 text-red-700' : 'bg-black/10 text-black dark:text-white'}`}
-                            value={inv.status}
-                            onChange={(e) => handleUpdateRSVP(client.id, e.target.value, inv.guestCount)}
-                          >
-                            <option value="invited" className="text-black">Invited</option>
-                            <option value="rsvp_accepted" className="text-black">RSVP Accepted</option>
-                            <option value="attended" className="text-black">Attended</option>
-                            <option value="declined" className="text-black">Declined</option>
-                          </select>
-                        </td>
-                        <td className="py-3">
-                          <input 
-                            type="number" 
-                            min="0" 
-                            className="w-16 bg-black/5 dark:bg-white/5 rounded px-2 py-1 text-sm border border-black/10" 
-                            value={inv.guestCount}
-                            onChange={(e) => handleUpdateRSVP(client.id, inv.status, parseInt(e.target.value) || 0)}
-                            disabled={inv.status === 'invited' || inv.status === 'declined'}
-                          />
-                        </td>
-                      </>
-                    )}
+                    {inviteTab === 'rsvp' || inviteTab === 'attended' ? (
+                      <td className="py-3">
+                        <input 
+                          type="number" 
+                          min="0" 
+                          className="w-16 bg-black/5 dark:bg-white/5 rounded px-2 py-1 text-sm border border-black/10" 
+                          value={inv?.guestCount || 0}
+                          onChange={(e) => handleUpdateRSVP(client.id, inv.status, parseInt(e.target.value) || 0)}
+                        />
+                      </td>
+                    ) : null}
                     <td className="py-3 text-right">
-                      {inviteTab === 'all' ? (
-                        <button onClick={() => handleInviteClient(client.id)} className="btn-primary text-xs py-1 px-3">Invite</button>
-                      ) : (
-                        <button onClick={() => handleRemoveInvitee(client.id)} className="text-red-500 text-xs hover:underline font-bold">Remove</button>
-                      )}
+                      <div className="flex justify-end items-center gap-2">
+                        {inviteTab === 'all' && (
+                          <button onClick={() => handleInviteClient(client.id)} className="btn-primary text-xs py-1 px-3">Invite</button>
+                        )}
+                        {inviteTab === 'invited' && (
+                          <>
+                            <button onClick={() => handleUpdateRSVP(client.id, 'rsvp_accepted', 1)} className="bg-yellow-500 text-white font-bold rounded text-xs py-1 px-3 hover:bg-yellow-600">RSVP</button>
+                            <button onClick={() => handleUpdateRSVP(client.id, 'declined', 0)} className="bg-red-500 text-white font-bold rounded text-xs py-1 px-3 hover:bg-red-600">Decline</button>
+                            <button onClick={() => handleRemoveInvitee(client.id)} className="text-red-500 text-xs hover:underline font-bold ml-2">Remove</button>
+                          </>
+                        )}
+                        {inviteTab === 'rsvp' && (
+                          <>
+                            <button onClick={() => handleUpdateRSVP(client.id, 'attended', inv.guestCount)} className="bg-green-500 text-white font-bold rounded text-xs py-1 px-3 hover:bg-green-600">Present</button>
+                            <button onClick={() => handleRemoveInvitee(client.id)} className="text-red-500 text-xs hover:underline font-bold ml-2">Remove</button>
+                          </>
+                        )}
+                        {(inviteTab === 'attended' || inviteTab === 'declined') && (
+                          <button onClick={() => handleRemoveInvitee(client.id)} className="text-red-500 text-xs hover:underline font-bold">Remove</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
