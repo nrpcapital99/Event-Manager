@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { getTaskStyles } from '../../lib/utils';
 
 const AdminTasks = () => {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -92,7 +93,9 @@ const AdminTasks = () => {
     try {
       await addDoc(collection(db, 'tasks'), {
         ...newTask,
-        status: 'pending'
+        status: 'pending',
+        completedBy: [],
+        completedAt: null
       });
       setShowModal(false);
       setNewTask({ ...newTask, title: '', description: '', employeeIds: [], dueDate: '' });
@@ -149,9 +152,8 @@ const AdminTasks = () => {
         </div>
         
         {selectedEventForGantt ? (
-          <div className="bg-black/5 dark:bg-black/20 rounded-lg p-4 text-[var(--glass-text)] border border-black/5 dark:border-white/5 overflow-x-auto relative min-h-[16rem]">
+          <div className="bg-black/5 dark:bg-black/20 rounded-lg p-4 text-[var(--glass-text)] border border-black/5 dark:border-white/5 relative min-h-[16rem]">
             {/* Simple CSS-based Gantt Chart */}
-            <div className="min-w-[600px] flex flex-col gap-3 relative z-10">
               {(() => {
                 const eventTasks = tasks.filter(t => t.eventId === selectedEventForGantt).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
                 const eventDoc = events.find(e => e.id === selectedEventForGantt);
@@ -168,57 +170,62 @@ const AdminTasks = () => {
                 
                 // Add some padding to minDate
                 const totalDuration = (eventDate - minDate) || 1; // avoid divide by zero
+                const totalDays = Math.max(1, Math.ceil(totalDuration / (1000 * 60 * 60 * 24)));
                 
-                // Generate X-Axis markers
-                const markers = [0, 0.25, 0.5, 0.75, 1].map(ratio => {
-                  const date = new Date(minDate + totalDuration * ratio);
-                  return {
-                    percent: ratio * 90, // Align with 90% scale
+                // Generate X-Axis markers for EVERY day
+                const markers = [];
+                for (let i = 0; i <= totalDays; i++) {
+                  const date = new Date(minDate + i * (1000 * 60 * 60 * 24));
+                  markers.push({
+                    percent: (i / totalDays) * 90, // Align with 90% scale
                     label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                  };
-                });
+                  });
+                }
                 
                 return (
-                  <>
-                    {/* X-Axis Dates */}
-                    <div className="flex relative h-10 mb-2 ml-[8.5rem] border-b border-black/10 dark:border-white/10 z-20">
-                      {markers.map((m, i) => (
-                        <div key={i} className="absolute text-xs opacity-70 transform -translate-x-1/2 flex flex-col items-center" style={{ left: `${m.percent}%` }}>
-                          <span className="font-medium bg-white/50 dark:bg-black/50 px-2 py-1 rounded backdrop-blur-sm">{m.label}</span>
-                          <div className="h-3 border-l border-black/20 dark:border-white/20 mt-1"></div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="overflow-x-auto custom-scrollbar pb-4">
+                    <div className="flex flex-col gap-3 relative z-10" style={{ minWidth: `${Math.max(600, totalDays * 60)}px` }}>
+                      {/* X-Axis Dates */}
+                      <div className="flex relative h-10 mb-2 ml-[8.5rem] border-b border-black/10 dark:border-white/10 z-20">
+                        {markers.map((m, i) => (
+                          <div key={i} className="absolute text-xs opacity-70 transform -translate-x-1/2 flex flex-col items-center" style={{ left: `${m.percent}%` }}>
+                            <span className="font-medium bg-white/50 dark:bg-black/50 px-2 py-1 rounded backdrop-blur-sm whitespace-nowrap">{m.label}</span>
+                            <div className="h-3 border-l border-black/20 dark:border-white/20 mt-1"></div>
+                          </div>
+                        ))}
+                      </div>
 
-                    {/* Background Grid Lines */}
-                    <div className="absolute top-14 bottom-0 left-[8.5rem] right-[10%] pointer-events-none z-0">
-                       {markers.map((m, i) => (
-                         <div key={`grid-${i}`} className="absolute top-0 bottom-0 border-l border-black/5 dark:border-white/5 border-dashed" style={{ left: `${m.percent * (10/9)}%` }}></div>
-                       ))}
-                    </div>
+                      {/* Background Grid Lines */}
+                      <div className="absolute top-14 bottom-0 left-[8.5rem] right-[10%] pointer-events-none z-0">
+                         {markers.map((m, i) => (
+                           <div key={`grid-${i}`} className="absolute top-0 bottom-0 border-l border-black/5 dark:border-white/5 border-dashed" style={{ left: `${(m.percent / 90) * 100}%` }}></div>
+                         ))}
+                      </div>
 
-                    {/* Y-Axis Tasks */}
-                    {eventTasks.map(task => {
-                       const tDate = new Date(task.dueDate).getTime();
-                       const percentStart = Math.max(0, ((tDate - minDate) / totalDuration) * 90); // cap at 90%
-                       
-                       return (
-                         <div key={task.id} className="flex items-center gap-4 group relative z-10">
-                           <div className="w-32 text-right truncate text-sm font-medium">{task.title}</div>
-                           <div className="flex-1 h-8 bg-black/5 dark:bg-white/5 rounded relative">
-                             <div 
-                               className="absolute top-1 bottom-1 bg-gradient-to-r from-pink-500 to-purple-500 rounded px-2 text-xs text-white flex items-center shadow-lg transition-all z-20"
-                               style={{ left: `${percentStart}%`, width: '12%' }}
-                             >
-                                <span className="truncate w-full block">
-                                  {new Date(task.dueDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})} ({getRelativeTimeline(task)})
-                                </span>
+                      {/* Y-Axis Tasks */}
+                      {eventTasks.map(task => {
+                         const tDate = new Date(task.dueDate).getTime();
+                         const percentStart = Math.max(0, ((tDate - minDate) / totalDuration) * 90); // cap at 90%
+                         const styles = getTaskStyles(task);
+                         
+                         return (
+                           <div key={task.id} className="flex items-center gap-4 group relative z-10">
+                             <div className="w-32 text-right truncate text-sm font-medium">{task.title}</div>
+                             <div className="flex-1 h-8 bg-black/5 dark:bg-white/5 rounded relative">
+                               <div 
+                                 className={`absolute top-1 bottom-1 ${styles.bar} rounded px-2 text-xs text-white flex items-center shadow-lg transition-all z-20`}
+                                 style={{ left: `${percentStart}%`, width: '12%' }}
+                               >
+                                  <span className="truncate w-full block">
+                                    {new Date(task.dueDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})} ({getRelativeTimeline(task)})
+                                  </span>
+                               </div>
                              </div>
                            </div>
-                         </div>
-                       );
-                    })}
-                  </>
+                         );
+                      })}
+                    </div>
+                  </div>
                 );
               })()}
             </div>
@@ -278,9 +285,14 @@ const AdminTasks = () => {
                       <div className="text-xs opacity-60 font-mono">Due: {task.dueDate}</div>
                     </td>
                     <td className="py-4">
-                      <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded text-xs uppercase tracking-wider font-bold">
-                        {task.status || 'Pending'}
-                      </span>
+                      {(() => {
+                        const styles = getTaskStyles(task);
+                        return (
+                          <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold inline-block`}>
+                            {styles.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );

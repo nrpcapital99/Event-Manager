@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut } from 'firebase/auth';
 import { collection, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { getTaskStyles } from '../../lib/utils';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -53,8 +54,27 @@ const EmployeeDashboard = () => {
   };
 
   const handleToggleTaskStatus = async (task: any) => {
-    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    await updateDoc(doc(db, 'tasks', task.id), { status: newStatus });
+    let newCompletedBy = task.completedBy || [];
+    
+    if (newCompletedBy.includes(employeeData.id)) {
+      // Unmark complete (withdraw consensus)
+      newCompletedBy = newCompletedBy.filter((id: string) => id !== employeeData.id);
+      await updateDoc(doc(db, 'tasks', task.id), { 
+        completedBy: newCompletedBy,
+        status: 'pending'
+      });
+    } else {
+      // Mark complete
+      newCompletedBy = [...newCompletedBy, employeeData.id];
+      const allDone = task.employeeIds.every((id: string) => newCompletedBy.includes(id));
+      
+      const updates: any = { completedBy: newCompletedBy };
+      if (allDone) {
+        updates.status = 'completed';
+        updates.completedAt = new Date();
+      }
+      await updateDoc(doc(db, 'tasks', task.id), updates);
+    }
   };
 
   // Helper for Gantt
@@ -94,23 +114,25 @@ const EmployeeDashboard = () => {
     });
     
     const totalDuration = (eventDate - minDate) || 1; 
+    const totalDays = Math.max(1, Math.ceil(totalDuration / (1000 * 60 * 60 * 24)));
     
-    const markers = [0, 0.25, 0.5, 0.75, 1].map(ratio => {
-      const date = new Date(minDate + totalDuration * ratio);
-      return {
-        percent: ratio * 90, 
+    const markers = [];
+    for (let i = 0; i <= totalDays; i++) {
+      const date = new Date(minDate + i * (1000 * 60 * 60 * 24));
+      markers.push({
+        percent: (i / totalDays) * 90, 
         label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-      };
-    });
+      });
+    }
     
     return (
-      <div className="bg-black/5 dark:bg-black/20 rounded-lg p-4 text-[var(--glass-text)] border border-black/5 dark:border-white/5 overflow-x-auto relative min-h-[16rem]">
-        <div className="min-w-[600px] flex flex-col gap-3 relative z-10">
+      <div className="bg-black/5 dark:bg-black/20 rounded-lg p-4 text-[var(--glass-text)] border border-black/5 dark:border-white/5 overflow-x-auto custom-scrollbar relative min-h-[16rem]">
+        <div className="flex flex-col gap-3 relative z-10" style={{ minWidth: `${Math.max(600, totalDays * 60)}px` }}>
           {/* X-Axis Dates */}
           <div className="flex relative h-10 mb-2 ml-[8.5rem] border-b border-black/10 dark:border-white/10 z-20">
             {markers.map((m, i) => (
               <div key={i} className="absolute text-xs opacity-70 transform -translate-x-1/2 flex flex-col items-center" style={{ left: `${m.percent}%` }}>
-                <span className="font-medium bg-white/50 dark:bg-black/50 px-2 py-1 rounded backdrop-blur-sm">{m.label}</span>
+                <span className="font-medium bg-white/50 dark:bg-black/50 px-2 py-1 rounded backdrop-blur-sm whitespace-nowrap">{m.label}</span>
                 <div className="h-3 border-l border-black/20 dark:border-white/20 mt-1"></div>
               </div>
             ))}
@@ -119,7 +141,7 @@ const EmployeeDashboard = () => {
           {/* Background Grid Lines */}
           <div className="absolute top-14 bottom-0 left-[8.5rem] right-[10%] pointer-events-none z-0">
              {markers.map((m, i) => (
-               <div key={`grid-${i}`} className="absolute top-0 bottom-0 border-l border-black/5 dark:border-white/5 border-dashed" style={{ left: `${m.percent * (10/9)}%` }}></div>
+               <div key={`grid-${i}`} className="absolute top-0 bottom-0 border-l border-black/5 dark:border-white/5 border-dashed" style={{ left: `${(m.percent / 90) * 100}%` }}></div>
              ))}
           </div>
 
@@ -127,14 +149,14 @@ const EmployeeDashboard = () => {
           {eventTasks.map(task => {
              const tDate = new Date(task.dueDate).getTime();
              const percentStart = Math.max(0, ((tDate - minDate) / totalDuration) * 90);
-             const isMyTask = task.employeeIds?.includes(employeeData.id);
+             const styles = getTaskStyles(task);
              
              return (
                <div key={task.id} className="flex items-center gap-4 group relative z-10">
                  <div className="w-32 text-right truncate text-sm font-medium">{task.title}</div>
                  <div className="flex-1 h-8 bg-black/5 dark:bg-white/5 rounded relative">
                    <div 
-                     className={`absolute top-1 bottom-1 rounded px-2 text-xs text-white flex items-center shadow-lg transition-all z-20 ${isMyTask ? 'bg-gradient-to-r from-pink-500 to-purple-500' : 'bg-black/40 dark:bg-white/40'}`}
+                     className={`absolute top-1 bottom-1 rounded px-2 text-xs text-white flex items-center shadow-lg transition-all z-20 ${styles.bar}`}
                      style={{ left: `${percentStart}%`, width: '12%' }}
                    >
                       <span className="truncate w-full block">
@@ -197,32 +219,58 @@ const EmployeeDashboard = () => {
                 <p className="opacity-50 text-sm">You have no tasks for this event.</p>
               ) : (
                 <div className="space-y-4">
-                  {myTasks.map(task => (
+                  {myTasks.map(task => {
+                    const styles = getTaskStyles(task);
+                    const iHaveCompleted = task.completedBy?.includes(employeeData.id);
+                    const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
+                    
+                    return (
                     <div key={task.id} className={`p-4 border rounded-lg transition-all ${task.status === 'completed' ? 'bg-green-500/5 border-green-500/20 opacity-70' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <span className="font-bold text-lg block">{task.title}</span>
                           <span className="text-xs font-bold uppercase tracking-wider opacity-60 text-pink-500">{task.category}</span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${task.status === 'completed' ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'}`}>
-                          {task.status || 'Pending'}
+                        <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold`}>
+                          {styles.label}
                         </span>
                       </div>
-                      <p className="text-sm opacity-80 mb-4">{task.description}</p>
+                      <p className="text-sm opacity-80 mb-3">{task.description}</p>
+                      
+                      {assignedEmps.length > 1 && (
+                        <div className="mb-4">
+                          <p className="text-xs font-bold opacity-50 mb-1 uppercase tracking-wider">Team on this task:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {assignedEmps.map(emp => {
+                              const empDone = task.completedBy?.includes(emp.id);
+                              return (
+                                <span key={emp.id} className={`text-xs px-2 py-0.5 rounded-full ${empDone ? 'bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/30' : 'bg-black/10 dark:bg-white/10 opacity-70'}`}>
+                                  {emp.name} {empDone && '✓'}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="flex items-center justify-between border-t border-black/10 dark:border-white/10 pt-3">
                         <span className="text-sm font-medium opacity-70">
                           Due: {new Date(task.dueDate).toLocaleDateString()}
                         </span>
-                        <button 
-                          onClick={() => handleToggleTaskStatus(task)}
-                          className={`text-sm px-4 py-1.5 rounded font-bold transition-all ${task.status === 'completed' ? 'bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20' : 'bg-pink-500 text-white hover:bg-pink-600'}`}
-                        >
-                          {task.status === 'completed' ? 'Mark Incomplete' : 'Mark Complete'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {iHaveCompleted && task.status !== 'completed' && (
+                            <span className="text-xs text-yellow-600 dark:text-yellow-400 font-bold italic animate-pulse">Waiting on team...</span>
+                          )}
+                          <button 
+                            onClick={() => handleToggleTaskStatus(task)}
+                            className={`text-sm px-4 py-1.5 rounded font-bold transition-all ${iHaveCompleted ? 'bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20' : 'bg-pink-500 text-white hover:bg-pink-600'}`}
+                          >
+                            {iHaveCompleted ? 'Withdraw Complete' : 'Mark Complete'}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>
@@ -236,12 +284,13 @@ const EmployeeDashboard = () => {
                 <div className="space-y-4">
                   {otherTasks.map(task => {
                     const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
+                    const styles = getTaskStyles(task);
                     return (
                       <div key={task.id} className="p-3 border border-black/5 dark:border-white/5 rounded-lg bg-black/5 dark:bg-white/5 opacity-80 hover:opacity-100 transition-opacity">
                         <div className="flex justify-between items-center mb-1">
                           <span className="font-medium">{task.title}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold ${task.status === 'completed' ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'}`}>
-                            {task.status || 'Pending'}
+                          <span className={`${styles.badge} text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold`}>
+                            {styles.label}
                           </span>
                         </div>
                         <div className="text-xs opacity-60 mb-2">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
