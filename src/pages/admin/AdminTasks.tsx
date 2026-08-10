@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch } from 'firebase/firestore';
 import { getTaskStyles } from '../../lib/utils';
 
 const AdminTasks = () => {
@@ -10,8 +10,8 @@ const AdminTasks = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [error, setError] = useState('');
   
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [sortBy, setSortBy] = useState('priority'); // 'priority' or 'dueDate'
   const [newTask, setNewTask] = useState<{
     eventId: string;
     title: string;
@@ -20,6 +20,7 @@ const AdminTasks = () => {
     category: string;
     dueDate: string;
     manualColor: string;
+    priorityOrder: number;
   }>({
     eventId: '',
     title: '',
@@ -27,7 +28,8 @@ const AdminTasks = () => {
     employeeIds: [],
     category: 'logistics',
     dueDate: '',
-    manualColor: ''
+    manualColor: '',
+    priorityOrder: 1
   });
 
   const [selectedEventForGantt, setSelectedEventForGantt] = useState<string>('');
@@ -81,7 +83,7 @@ const AdminTasks = () => {
     fetchData();
   }, []);
 
-  const handleCreateTask = async (e: React.FormEvent) => {
+  const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -95,19 +97,62 @@ const AdminTasks = () => {
     }
 
     try {
-      await addDoc(collection(db, 'tasks'), {
-        ...newTask,
-        status: 'pending',
-        completedBy: [],
-        completedAt: null,
-        priorityOrder: Date.now() // For drag and drop sorting
-      });
+      const batch = writeBatch(db);
+      
+      const eventTasks = tasks.filter(t => t.eventId === newTask.eventId);
+      const targetPriority = Number(newTask.priorityOrder) || 1;
+      
+      const isEdit = !!editingTask;
+      const oldPriority = isEdit ? editingTask.priorityOrder : null;
+      
+      if (!isEdit || oldPriority !== targetPriority) {
+        eventTasks.forEach(t => {
+          if (isEdit && t.id === editingTask.id) return;
+          
+          let p = t.priorityOrder;
+          if (isEdit && oldPriority) {
+            if (oldPriority > targetPriority && p >= targetPriority && p < oldPriority) {
+              p++;
+            } else if (oldPriority < targetPriority && p > oldPriority && p <= targetPriority) {
+              p--;
+            }
+          } else {
+            if (p >= targetPriority) {
+              p++;
+            }
+          }
+          
+          if (p !== t.priorityOrder) {
+            batch.update(doc(db, 'tasks', t.id), { priorityOrder: p });
+          }
+        });
+      }
+
+      if (isEdit) {
+        batch.update(doc(db, 'tasks', editingTask.id), {
+          ...newTask,
+          priorityOrder: targetPriority
+        });
+      } else {
+        const newTaskRef = doc(collection(db, 'tasks'));
+        batch.set(newTaskRef, {
+          ...newTask,
+          status: 'pending',
+          completedBy: [],
+          completedAt: null,
+          priorityOrder: targetPriority
+        });
+      }
+      
+      await batch.commit();
+
       setShowModal(false);
-      setNewTask({ ...newTask, title: '', description: '', employeeIds: [], dueDate: '', manualColor: '' });
+      setEditingTask(null);
+      setNewTask({ eventId: '', title: '', description: '', employeeIds: [], category: 'logistics', dueDate: '', manualColor: '', priorityOrder: 1 });
       fetchData();
     } catch (err: any) {
-      console.error("Error creating task", err);
-      setError(err.message || "Failed to create task.");
+      console.error("Error saving task", err);
+      setError(err.message || "Failed to save task.");
     }
   };
 
@@ -131,49 +176,17 @@ const AdminTasks = () => {
     return `Due T+${Math.abs(diffDays)} Days (Post Event)`;
   };
 
-  const handleDragStart = (taskId: string) => {
-    setDraggedTaskId(taskId);
-  };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // necessary to allow dropping
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetTaskId: string) => {
-    e.preventDefault();
-    if (!draggedTaskId || draggedTaskId === targetTaskId) return;
-
-    const sourceTask = tasks.find(t => t.id === draggedTaskId);
-    const targetTask = tasks.find(t => t.id === targetTaskId);
-    
-    if (!sourceTask || !targetTask) return;
-    
-    // Swap priority orders
-    const sourcePriority = sourceTask.priorityOrder || 0;
-    const targetPriority = targetTask.priorityOrder || 0;
-    
-    try {
-      // Optimistic update locally
-      setTasks(prev => prev.map(t => {
-        if (t.id === sourceTask.id) return { ...t, priorityOrder: targetPriority };
-        if (t.id === targetTask.id) return { ...t, priorityOrder: sourcePriority };
-        return t;
-      }));
-      
-      await updateDoc(doc(db, 'tasks', sourceTask.id), { priorityOrder: targetPriority });
-      await updateDoc(doc(db, 'tasks', targetTask.id), { priorityOrder: sourcePriority });
-    } catch (err) {
-      console.error('Error swapping tasks:', err);
-    }
-    
-    setDraggedTaskId(null);
-  };
 
   return (
     <div className="animate-in fade-in duration-500">
       <div className="flex justify-between items-center mb-8 border-b border-black/10 dark:border-white/20 pb-4">
         <h2 className="text-3xl font-bold">Manage Tasks & Logistics</h2>
-        <button onClick={() => setShowModal(true)} className="btn-primary">
+        <button onClick={() => {
+          setEditingTask(null);
+          setNewTask({ eventId: selectedEventForGantt || '', title: '', description: '', employeeIds: [], category: 'logistics', dueDate: '', manualColor: '', priorityOrder: (tasks.filter(t => t.eventId === selectedEventForGantt).length || 0) + 1 });
+          setShowModal(true);
+        }} className="btn-primary">
           + Add Task
         </button>
       </div>
@@ -286,7 +299,19 @@ const AdminTasks = () => {
       </div>
 
       <div className="glass p-6">
-        <h3 className="text-xl font-bold mb-4">Event Task Board</h3>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+          <h3 className="text-xl font-bold">Event Task Board</h3>
+          
+          {selectedEventForGantt && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="opacity-70">Sort By:</span>
+              <select className="glass-input !w-auto !py-1" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                <option value="priority" className="text-black">Priority Order</option>
+                <option value="dueDate" className="text-black">Due Date</option>
+              </select>
+            </div>
+          )}
+        </div>
         
         {!selectedEventForGantt ? (
           <p className="opacity-70 text-center py-8">Select an event above to view and sort its tasks.</p>
@@ -294,7 +319,12 @@ const AdminTasks = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tasks
               .filter(t => t.eventId === selectedEventForGantt)
-              .sort((a, b) => (a.priorityOrder || 0) - (b.priorityOrder || 0))
+              .sort((a, b) => {
+                if (sortBy === 'dueDate') {
+                  return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+                }
+                return (a.priorityOrder || 0) - (b.priorityOrder || 0);
+              })
               .map(task => {
                 const assignedEmps = task.employeeIds ? employees.filter(e => task.employeeIds.includes(e.id)) : [];
                 const styles = getTaskStyles(task);
@@ -302,17 +332,18 @@ const AdminTasks = () => {
                 return (
                   <div 
                     key={task.id} 
-                    draggable
-                    onDragStart={() => handleDragStart(task.id)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, task.id)}
-                    className="p-5 border border-black/10 dark:border-white/10 rounded-lg bg-black/5 dark:bg-white/5 cursor-move hover:shadow-lg transition-all"
+                    className="p-5 border border-black/10 dark:border-white/10 rounded-lg bg-black/5 dark:bg-white/5 hover:shadow-lg transition-all flex flex-col"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-bold text-lg">{task.title}</div>
-                      <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold`}>
-                        {styles.label}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-black/10 dark:bg-white/10 w-6 h-6 rounded flex items-center justify-center font-bold text-xs">{task.priorityOrder || '-'}</span>
+                        <div className="font-bold text-lg">{task.title}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold`}>
+                          {styles.label}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-sm opacity-80 mb-4">{task.description}</p>
                     
@@ -335,9 +366,30 @@ const AdminTasks = () => {
                       </div>
                     )}
                     
-                    <div className="flex justify-between items-center text-xs opacity-70 border-t border-black/10 dark:border-white/10 pt-3">
+                    <div className="flex justify-between items-center text-xs opacity-70 border-t border-black/10 dark:border-white/10 pt-3 mt-auto">
                       <span>{getRelativeTimeline(task)}</span>
-                      <span>Due: {task.dueDate}</span>
+                      <div className="flex items-center gap-4">
+                        <span>Due: {task.dueDate}</span>
+                        <button 
+                          onClick={() => {
+                            setEditingTask(task);
+                            setNewTask({
+                              eventId: task.eventId,
+                              title: task.title,
+                              description: task.description,
+                              employeeIds: task.employeeIds || [],
+                              category: task.category || 'logistics',
+                              dueDate: task.dueDate || '',
+                              manualColor: task.manualColor || '',
+                              priorityOrder: task.priorityOrder || 1
+                            });
+                            setShowModal(true);
+                          }}
+                          className="text-pink-500 hover:text-pink-600 font-bold"
+                        >
+                          Edit
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -353,7 +405,7 @@ const AdminTasks = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="glass-panel w-full max-w-md animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold mb-6">Create New Task</h3>
+            <h3 className="text-2xl font-bold mb-6">{editingTask ? 'Edit Task' : 'Create New Task'}</h3>
             
             {error && (
               <div className="mb-4 p-3 bg-red-500/20 text-red-500 rounded-lg text-sm font-medium text-center">
@@ -361,7 +413,7 @@ const AdminTasks = () => {
               </div>
             )}
             
-            <form onSubmit={handleCreateTask} className="space-y-4">
+            <form onSubmit={handleSaveTask} className="space-y-4">
               
               <select required className="glass-input appearance-none bg-white dark:bg-black/20" value={newTask.eventId} onChange={e => setNewTask({...newTask, eventId: e.target.value})}>
                 <option value="" disabled className="text-black">1. Select Event</option>
@@ -370,6 +422,11 @@ const AdminTasks = () => {
 
               <input type="text" placeholder="Task Title (e.g. Setup Mics)" required className="glass-input" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} />
               <textarea placeholder="Specific Details (e.g. Need 4 wireless mics for main stage)" required className="glass-input min-h-[80px]" value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})} />
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block opacity-80">Priority Order (1 = Highest)</label>
+                <input type="number" min="1" required className="glass-input" value={newTask.priorityOrder} onChange={e => setNewTask({...newTask, priorityOrder: parseInt(e.target.value) || 1})} />
+              </div>
               
               <div>
                 <label className="text-sm font-medium mb-2 block opacity-80">2. Assign Employees (Must be in Event Team)</label>

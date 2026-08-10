@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, Timestamp, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
 
 const AdminEvents = () => {
   const [events, setEvents] = useState<any[]>([]);

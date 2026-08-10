@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const Login = () => {
   const [role, setRole] = useState<'admin' | 'employee'>('employee');
@@ -41,7 +41,7 @@ const Login = () => {
       const codeData = { id: codeDoc.id, ...codeDoc.data() };
 
       // 2. Sign in anonymously
-      const userCredential = await signInAnonymously(auth);
+      await signInAnonymously(auth);
       
       // We can pass state to router or let context handle it
       navigate('/employee', { state: { employeeData: codeData } });

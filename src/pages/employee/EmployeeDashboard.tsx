@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut } from 'firebase/auth';
@@ -14,6 +14,7 @@ const EmployeeDashboard = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [newExpense, setNewExpense] = useState({ description: '', amount: '' });
 
   useEffect(() => {
     if (!employeeData.id) {
@@ -22,7 +23,7 @@ const EmployeeDashboard = () => {
     }
 
     const unsubEvents = onSnapshot(collection(db, 'events'), (snapshot) => {
-      const allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const allEvents: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       // Filter events where the employee is assigned
       const myEvents = allEvents.filter(ev => ev.employeeIds?.includes(employeeData.id));
       setEvents(myEvents);
@@ -80,6 +81,28 @@ const EmployeeDashboard = () => {
   const handleSaveRemark = async (taskId: string, currentRemarks: string, newRemark: string) => {
     if (currentRemarks === newRemark) return; // no change
     await updateDoc(doc(db, 'tasks', taskId), { remarks: newRemark });
+  };
+
+  const handleAddExpense = async () => {
+    if (!selectedEventId || !newExpense.description || !newExpense.amount) return;
+    
+    const event = events.find(e => e.id === selectedEventId);
+    if (!event) return;
+
+    const expense = {
+      id: Date.now().toString(),
+      description: newExpense.description,
+      amount: parseFloat(newExpense.amount),
+      addedBy: employeeData.name, // Tag the employee's name
+      date: new Date().toISOString()
+    };
+
+    const currentExpenses = event.expenses || [];
+    await updateDoc(doc(db, 'events', selectedEventId), {
+      expenses: [...currentExpenses, expense]
+    });
+
+    setNewExpense({ description: '', amount: '' });
   };
 
   // Helper for Gantt
@@ -214,6 +237,48 @@ const EmployeeDashboard = () => {
               <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse uppercase tracking-wider font-bold">Live</span>
             </h3>
             {renderGanttChart()}
+          </div>
+          
+          {/* Event Expenses */}
+          <div className="glass p-6 mb-8 border-l-4 border-l-green-500">
+            <h3 className="text-2xl font-bold mb-4">Event Expenses</h3>
+            <p className="opacity-70 text-sm mb-4">Submit expenses for this event. These will be reviewed by the event administrators.</p>
+            
+            <div className="flex gap-4 mb-6 flex-wrap">
+              <input type="text" placeholder="Expense description (e.g. Uber, Catering supplies)" className="glass-input flex-1 min-w-[200px]" value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} />
+              <input type="number" placeholder="Amount ($)" className="glass-input w-32" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
+              <button onClick={handleAddExpense} className="btn-primary whitespace-nowrap bg-green-500 hover:bg-green-600 text-white">Submit Expense</button>
+            </div>
+            
+            <div className="space-y-3">
+              <h4 className="font-bold text-sm uppercase tracking-wider opacity-50">Recent Expenses Logged by You</h4>
+              {(selectedEvent?.expenses || []).filter((exp: any) => exp.addedBy === employeeData.name).length === 0 ? (
+                <p className="text-sm opacity-50 italic">You haven't logged any expenses for this event yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-black/10 dark:border-white/10 opacity-70">
+                        <th className="pb-2">Date</th>
+                        <th className="pb-2">Description</th>
+                        <th className="pb-2 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedEvent?.expenses || [])
+                        .filter((exp: any) => exp.addedBy === employeeData.name)
+                        .map((exp: any) => (
+                        <tr key={exp.id} className="border-b border-black/5 dark:border-white/5">
+                          <td className="py-2 opacity-70">{new Date(exp.date).toLocaleDateString()}</td>
+                          <td className="py-2 font-medium">{exp.description}</td>
+                          <td className="py-2 font-mono text-right text-green-600 dark:text-green-400 font-bold">${exp.amount.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
