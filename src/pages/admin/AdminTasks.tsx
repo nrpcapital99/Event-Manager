@@ -11,7 +11,8 @@ const AdminTasks = () => {
   const [error, setError] = useState('');
   
   const [editingTask, setEditingTask] = useState<any | null>(null);
-  const [sortBy, setSortBy] = useState('priority'); // 'priority' or 'dueDate'
+  const [sortBy, setSortBy] = useState('priority'); // 'priority' or 'dueDate' or 'category'
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [newTask, setNewTask] = useState<{
     eventId: string;
     title: string;
@@ -313,12 +314,30 @@ const AdminTasks = () => {
           <h3 className="text-xl font-bold">Event Task Board</h3>
           
           {selectedEventForGantt && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="opacity-70">Sort By:</span>
-              <select className="glass-input !w-auto !py-1" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                <option value="priority" className="bg-white dark:bg-slate-900 text-black dark:text-white">Priority Order</option>
-                <option value="dueDate" className="bg-white dark:bg-slate-900 text-black dark:text-white">Due Date</option>
-              </select>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="opacity-70">Sort By:</span>
+                <select className="glass-input !w-auto !py-1" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                  <option value="priority" className="bg-white dark:bg-slate-900 text-black dark:text-white">Priority Order</option>
+                  <option value="dueDate" className="bg-white dark:bg-slate-900 text-black dark:text-white">Due Date</option>
+                  <option value="category" className="bg-white dark:bg-slate-900 text-black dark:text-white">Category</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-lg p-1">
+                <button 
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-1 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary text-white shadow-md' : 'hover:bg-black/10 dark:hover:bg-white/10'}`}
+                >
+                  Tile
+                </button>
+                <button 
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1 rounded-md transition-all ${viewMode === 'list' ? 'bg-primary text-white shadow-md' : 'hover:bg-black/10 dark:hover:bg-white/10'}`}
+                >
+                  List
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -326,18 +345,77 @@ const AdminTasks = () => {
         {!selectedEventForGantt ? (
           <p className="opacity-70 text-center py-8">Select an event above to view and sort its tasks.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-3"}>
             {tasks
               .filter(t => t.eventId === selectedEventForGantt)
               .sort((a, b) => {
                 if (sortBy === 'dueDate') {
                   return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+                } else if (sortBy === 'category') {
+                  return (a.category || '').localeCompare(b.category || '');
                 }
                 return (a.priorityOrder || 0) - (b.priorityOrder || 0);
               })
               .map(task => {
                 const assignedEmps = task.employeeIds ? employees.filter(e => task.employeeIds.includes(e.id)) : [];
                 const styles = getTaskStyles(task);
+                
+                if (viewMode === 'list') {
+                  return (
+                    <div key={task.id} className="p-4 border border-black/10 dark:border-white/10 rounded-lg bg-black/5 dark:bg-white/5 hover:shadow-md transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 flex-1">
+                        <span className="bg-black/10 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0">{task.priorityOrder || '-'}</span>
+                        <div>
+                          <div className="font-bold text-lg mb-1">{task.title}</div>
+                          <div className="text-sm opacity-80">{task.description}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 flex-wrap w-full md:w-auto">
+                        <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold shrink-0`}>
+                          {styles.label}
+                        </span>
+                        
+                        <div className="flex -space-x-2 mr-2">
+                          {assignedEmps.length > 0 ? (
+                            assignedEmps.map(emp => (
+                              <div key={emp.id} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-white dark:border-slate-900 flex items-center justify-center text-xs font-bold text-primary" title={emp.name}>
+                                {emp.name.substring(0, 2).toUpperCase()}
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-xs italic opacity-50 px-2">Unassigned</span>
+                          )}
+                        </div>
+                        
+                        <div className="text-xs opacity-70 text-right min-w-[120px]">
+                          <div>Due: {task.dueDate}</div>
+                          <div className="font-medium text-pink-500">{getRelativeTimeline(task)}</div>
+                        </div>
+                        
+                        <button 
+                          onClick={() => {
+                            setEditingTask(task);
+                            setNewTask({
+                              eventId: task.eventId,
+                              title: task.title,
+                              description: task.description,
+                              employeeIds: task.employeeIds || [],
+                              category: task.category || 'logistics',
+                              dueDate: task.dueDate || '',
+                              manualColor: task.manualColor || '',
+                              priorityOrder: task.priorityOrder || 1
+                            });
+                            setShowModal(true);
+                          }}
+                          className="px-3 py-1 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded font-medium text-sm transition-colors"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
                 
                 return (
                   <div 
