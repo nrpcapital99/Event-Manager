@@ -114,6 +114,8 @@ const EmployeeDashboard = () => {
     const eventDate = parentEvent.eventDate.toDate();
     const taskEnd = new Date(task.dueDate);
     
+    if (isNaN(taskEnd.getTime())) return 'Invalid due date';
+    
     eventDate.setHours(0,0,0,0);
     taskEnd.setHours(0,0,0,0);
     
@@ -126,7 +128,14 @@ const EmployeeDashboard = () => {
   };
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
-  const eventTasks = selectedEvent ? tasks.filter(t => t.eventId === selectedEventId).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()) : [];
+  const eventTasks = selectedEvent ? tasks.filter(t => t.eventId === selectedEventId).sort((a, b) => {
+    const timeA = new Date(a.dueDate).getTime();
+    const timeB = new Date(b.dueDate).getTime();
+    if (isNaN(timeA) && isNaN(timeB)) return 0;
+    if (isNaN(timeA)) return 1;
+    if (isNaN(timeB)) return -1;
+    return timeA - timeB;
+  }) : [];
   
   const myTasks = eventTasks.filter(t => t.employeeIds?.includes(employeeData.id));
   const otherTasks = eventTasks.filter(t => !t.employeeIds?.includes(employeeData.id));
@@ -139,8 +148,9 @@ const EmployeeDashboard = () => {
     const eventDate = selectedEvent.eventDate ? selectedEvent.eventDate.toDate().getTime() : new Date().getTime();
     let minDate = eventDate;
     eventTasks.forEach(t => {
+       if (!t.dueDate) return;
        const tDate = new Date(t.dueDate).getTime();
-       if (tDate < minDate) minDate = tDate;
+       if (!isNaN(tDate) && tDate < minDate) minDate = tDate;
     });
     
     const totalDuration = (eventDate - minDate) || 1; 
@@ -248,7 +258,7 @@ const EmployeeDashboard = () => {
             
             <div className="flex gap-4 mb-6 flex-wrap">
               <input type="text" placeholder="Expense description (e.g. Uber, Catering supplies)" className="glass-input flex-1 min-w-[200px]" value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} />
-              <input type="number" placeholder="Amount ($)" className="glass-input w-32" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
+              <input type="number" placeholder="Amount (₹)" className="glass-input w-32" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
               <button onClick={handleAddExpense} className="btn-primary whitespace-nowrap bg-green-500 hover:bg-green-600 text-white">Submit Expense</button>
             </div>
             
@@ -273,7 +283,7 @@ const EmployeeDashboard = () => {
                         <tr key={exp.id} className="border-b border-black/5 dark:border-white/5">
                           <td className="py-2 opacity-70">{new Date(exp.date).toLocaleDateString()}</td>
                           <td className="py-2 font-medium">{exp.description}</td>
-                          <td className="py-2 font-mono text-right text-green-600 dark:text-green-400 font-bold">${exp.amount.toFixed(2)}</td>
+                          <td className="py-2 font-mono text-right text-green-600 dark:text-green-400 font-bold">₹{exp.amount.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -165,6 +165,8 @@ const AdminTasks = () => {
     const eventDate = parentEvent.eventDate.toDate();
     const taskEnd = new Date(task.dueDate);
     
+    if (isNaN(taskEnd.getTime())) return 'Invalid due date';
+    
     eventDate.setHours(0,0,0,0);
     taskEnd.setHours(0,0,0,0);
     
@@ -211,7 +213,14 @@ const AdminTasks = () => {
           <div className="bg-black/5 dark:bg-black/20 rounded-lg p-4 text-[var(--glass-text)] border border-black/5 dark:border-white/5 relative min-h-[16rem]">
             {/* Simple CSS-based Gantt Chart */}
               {(() => {
-                const eventTasks = tasks.filter(t => t.eventId === selectedEventForGantt).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+                const eventTasks = tasks.filter(t => t.eventId === selectedEventForGantt).sort((a, b) => {
+                  const timeA = new Date(a.dueDate).getTime();
+                  const timeB = new Date(b.dueDate).getTime();
+                  if (isNaN(timeA) && isNaN(timeB)) return 0;
+                  if (isNaN(timeA)) return 1; // Put invalid dates at the end
+                  if (isNaN(timeB)) return -1;
+                  return timeA - timeB;
+                });
                 const eventDoc = events.find(e => e.id === selectedEventForGantt);
                 
                 if (eventTasks.length === 0) return <p className="opacity-50 text-center py-8 font-medium">No tasks found for this event.</p>;
@@ -220,8 +229,9 @@ const AdminTasks = () => {
                 const eventDate = eventDoc?.eventDate ? eventDoc.eventDate.toDate().getTime() : new Date().getTime();
                 let minDate = eventDate;
                 eventTasks.forEach(t => {
+                   if (!t.dueDate) return;
                    const tDate = new Date(t.dueDate).getTime();
-                   if (tDate < minDate) minDate = tDate;
+                   if (!isNaN(tDate) && tDate < minDate) minDate = tDate;
                 });
                 
                 // Add some padding to minDate

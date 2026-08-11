@@ -220,7 +220,7 @@ const AdminEvents = () => {
               <h3 className="text-xl font-bold mb-4">Event Expenses</h3>
               <div className="flex gap-4 mb-6 flex-wrap">
                 <input type="text" placeholder="Expense description..." className="glass-input flex-1 min-w-[200px]" value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} />
-                <input type="number" placeholder="Amount ($)" className="glass-input w-32" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
+                <input type="number" placeholder="Amount (₹)" className="glass-input w-32" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
                 <button onClick={() => handleAddExpense(event.id)} className="btn-primary whitespace-nowrap">Add Expense</button>
               </div>
               
@@ -241,7 +241,7 @@ const AdminEvents = () => {
                         <td className="py-3 text-sm opacity-70">{new Date(exp.date).toLocaleDateString()}</td>
                         <td className="py-3 font-medium">{exp.description}</td>
                         <td className="py-3 text-sm">{exp.addedBy}</td>
-                        <td className="py-3 font-mono text-right">${exp.amount.toFixed(2)}</td>
+                        <td className="py-3 font-mono text-right">₹{exp.amount.toFixed(2)}</td>
                         <td className="py-3 text-right">
                           <button onClick={() => handleRemoveExpense(event.id, exp.id)} className="text-red-500 text-xs hover:underline ml-4">Delete</button>
                         </td>
@@ -250,7 +250,7 @@ const AdminEvents = () => {
                     {(event.expenses || []).length > 0 && (
                       <tr className="font-bold text-lg bg-black/5 dark:bg-white/5">
                         <td colSpan={3} className="py-3 text-right pr-4">Total Expenses:</td>
-                        <td className="py-3 text-right text-pink-500">${(event.expenses || []).reduce((sum: number, exp: any) => sum + exp.amount, 0).toFixed(2)}</td>
+                        <td className="py-3 text-right text-pink-500">₹{(event.expenses || []).reduce((sum: number, exp: any) => sum + exp.amount, 0).toFixed(2)}</td>
                         <td></td>
                       </tr>
                     )}
