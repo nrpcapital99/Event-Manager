@@ -37,7 +37,7 @@ const AdminCommandBoard = ({
   const [party, setParty] = useState(1.8);
 
   // Data for the board
-  const [attendees, setAttendees] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
 
@@ -59,8 +59,8 @@ const AdminCommandBoard = ({
         setSelectedEventId(evs[0].id);
       }
 
-      const attSnap = await getDocs(collection(db, 'attendees'));
-      setAttendees(attSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const clientsSnap = await getDocs(collection(db, 'clients'));
+      setClients(clientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
       const taskSnap = await getDocs(collection(db, 'tasks'));
       setTasks(taskSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -138,33 +138,56 @@ const AdminCommandBoard = ({
     }
   };
 
-  const assignSeatToAttendee = async (attendeeId: string) => {
-    if (selectedSeat === null) return;
+  const assignSeatToAttendee = async (clientId: string) => {
+    if (selectedSeat === null || !selectedEventId) return;
     
-    // Unassign this seat from anyone else first
-    const existingOccupant = attendees.find(a => a.eventId === selectedEventId && a.seatNumber === selectedSeat);
-    if (existingOccupant) {
-      await updateDoc(doc(db, 'attendees', existingOccupant.id), { seatNumber: null });
+    const currentEvent = events.find(e => e.id === selectedEventId);
+    if (!currentEvent) return;
+
+    let newInvitees = [...(currentEvent.invitees || [])];
+
+    // 1. Unassign anyone who already has this seat
+    newInvitees = newInvitees.map(inv => {
+      if (inv.seatNumber === selectedSeat) {
+        return { ...inv, seatNumber: null };
+      }
+      return inv;
+    });
+
+    // 2. Assign the seat to the newly selected clientId
+    if (clientId) {
+      newInvitees = newInvitees.map(inv => {
+        if (inv.clientId === clientId) {
+          return { ...inv, seatNumber: selectedSeat };
+        }
+        return inv;
+      });
     }
 
-    // Assign to new attendee
-    if (attendeeId) {
-      await updateDoc(doc(db, 'attendees', attendeeId), { seatNumber: selectedSeat });
-    }
+    await updateDoc(doc(db, 'events', selectedEventId), { invitees: newInvitees });
     
     setShowSeatModal(false);
     setSelectedSeat(null);
-    fetchData(); // Refresh all attendees to get updated seats
+    fetchData(); // Refresh events to get updated invitees array
   };
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
-  const eventAttendees = attendees.filter(a => a.eventId === selectedEventId);
+  const eventAttendees = (selectedEvent?.invitees || []).map((inv: any) => {
+    const client = clients.find(c => c.id === inv.clientId);
+    return {
+      id: inv.clientId,
+      name: client?.name || 'Unknown',
+      status: inv.status,
+      seatNumber: inv.seatNumber || null
+    };
+  });
+  
   const eventTasks = tasks.filter(t => t.eventId === selectedEventId);
 
   // Calculate totals
-  const firmYes = eventAttendees.filter(a => a.rsvpStatus === 'Confirmed').length;
-  const likely = eventAttendees.filter(a => a.rsvpStatus === 'Maybe').length;
-  const contacted = eventAttendees.filter(a => a.status !== 'Not Sent').length;
+  const firmYes = eventAttendees.filter((a: any) => a.status === 'rsvp_accepted' || a.status === 'attended').length;
+  const likely = eventAttendees.filter((a: any) => a.status === 'invited').length;
+  const contacted = eventAttendees.length;
   
   const expected = Math.round(firmYes * (yesRate / 100) + likely * (likelyRate / 100));
   
