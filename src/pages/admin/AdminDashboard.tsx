@@ -17,59 +17,59 @@ import { Briefcase, ListOrdered, ClipboardList, Target } from 'lucide-react';
 const AdminOverview = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-500">
-      <Link to="/admin/events" className="glass-panel hover:bg-[var(--paper)] transition-all duration-300 group">
-        <div className="bg-[var(--paper)] p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <Calendar size={32} className="text-[var(--pine)]" />
+      <Link to="/admin/events" className="glass p-8 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-primary/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Calendar size={32} className="text-primary" />
         </div>
-        <h3 className="text-2xl font-semibold mb-3 disp">Manage Events</h3>
+        <h3 className="text-2xl font-semibold mb-3">Manage Events</h3>
         <p className="opacity-80">Create and oversee all events, timelines, and high-level details.</p>
       </Link>
       
-      <Link to="/admin/attendees" className="glass-panel hover:bg-[var(--paper)] transition-all duration-300 group">
-        <div className="bg-[var(--paper)] p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <ListOrdered size={32} className="text-[var(--pine)]" />
+      <Link to="/admin/attendees" className="glass p-8 hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-yellow-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <ListOrdered size={32} className="text-yellow-500" />
         </div>
-        <h3 className="text-2xl font-semibold mb-3 disp">Manage Attendees</h3>
+        <h3 className="text-2xl font-semibold mb-3">Manage Attendees</h3>
         <p className="opacity-80">Track invites, RSVPs, and client attendance for events.</p>
       </Link>
       
-      <Link to="/admin/tasks" className="glass-panel hover:bg-[var(--paper)] transition-all duration-300 group">
-        <div className="bg-[var(--paper)] p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <CheckSquare size={32} className="text-[var(--pine)]" />
+      <Link to="/admin/tasks" className="glass p-8 hover:shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-pink-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <CheckSquare size={32} className="text-pink-500" />
         </div>
-        <h3 className="text-2xl font-semibold mb-3 disp">Manage Tasks</h3>
+        <h3 className="text-2xl font-semibold mb-3">Manage Tasks</h3>
         <p className="opacity-80">Assign tasks, map equipment, and track progress on Gantt charts.</p>
       </Link>
       
-      <Link to="/admin/employees" className="glass-panel hover:bg-[var(--paper)] transition-all duration-300 group">
-        <div className="bg-[var(--paper)] p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <Users size={32} className="text-[var(--pine)]" />
+      <Link to="/admin/employees" className="glass p-8 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-blue-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Users size={32} className="text-blue-500" />
         </div>
-        <h3 className="text-2xl font-semibold mb-3 disp">Manage Employees</h3>
+        <h3 className="text-2xl font-semibold mb-3">Manage Employees</h3>
         <p className="opacity-80">Generate access codes and manage event personnel.</p>
       </Link>
       
-      <Link to="/admin/clients" className="glass-panel hover:bg-[var(--paper)] transition-all duration-300 group">
-        <div className="bg-[var(--paper)] p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <Briefcase size={32} className="text-[var(--pine)]" />
+      <Link to="/admin/clients" className="glass p-8 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-green-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Briefcase size={32} className="text-green-500" />
         </div>
-        <h3 className="text-2xl font-semibold mb-3 disp">Manage Clients</h3>
+        <h3 className="text-2xl font-semibold mb-3">Manage Clients</h3>
         <p className="opacity-80">Track clients, AUM, offices, and event attendance.</p>
       </Link>
       
-      <Link to="/admin/responsibilities" className="glass-panel hover:bg-[var(--paper)] transition-all duration-300 group">
-        <div className="bg-[var(--paper)] p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <ClipboardList size={32} className="text-[var(--pine)]" />
+      <Link to="/admin/responsibilities" className="glass p-8 hover:shadow-[0_0_30px_rgba(56,189,248,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-sky-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <ClipboardList size={32} className="text-sky-500" />
         </div>
-        <h3 className="text-2xl font-semibold mb-3 disp">Responsibilities</h3>
+        <h3 className="text-2xl font-semibold mb-3">Responsibilities</h3>
         <p className="opacity-80">Assign event-day roles and filter tasks per team member.</p>
       </Link>
       
-      <Link to="/admin/command-board" className="glass-panel hover:bg-[var(--paper)] transition-all duration-300 group border-red-500">
-        <div className="bg-red-50 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <Target size={32} className="text-[var(--red)]" />
+      <Link to="/admin/command-board" className="glass p-8 hover:shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-red-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Target size={32} className="text-red-500" />
         </div>
-        <h3 className="text-2xl font-semibold mb-3 disp text-[var(--red)]">Command Board</h3>
+        <h3 className="text-2xl font-semibold mb-3">Command Board</h3>
         <p className="opacity-80">War room overview for event numbers, targets, and risks.</p>
       </Link>
     </div>
@@ -107,12 +107,12 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="w-full max-w-7xl h-[90vh] flex flex-col md:flex-row gap-6 text-[var(--ink)]">
+    <div className="w-full max-w-7xl h-[90vh] flex flex-col md:flex-row gap-6 text-[var(--glass-text)]">
       
       {/* Sidebar Navigation */}
-      <div className="glass-panel w-full md:w-64 h-full flex flex-col justify-between p-6">
+      <div className="glass w-full md:w-64 h-full flex flex-col justify-between p-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-wider mb-8 disp text-[var(--ink)]">
+          <h2 className="text-2xl font-bold tracking-wider mb-8 text-transparent bg-clip-text bg-gradient-to-r from-primary to-pink-500">
             NRP EventManager
           </h2>
           <nav className="flex flex-col gap-2">
@@ -123,12 +123,12 @@ const AdminDashboard = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-[3px] transition-all duration-300 ${
-                    isActive ? 'bg-[var(--pine)] text-[var(--chalk)]' : 'hover:bg-[var(--paper)]'
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                    isActive ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' : 'hover:bg-black/5 dark:hover:bg-white/10'
                   }`}
                 >
                   <Icon size={20} />
-                  <span className="font-mono text-[11px] uppercase tracking-[.08em]">{item.label}</span>
+                  <span className="font-medium">{item.label}</span>
                 </Link>
               );
             })}
@@ -138,24 +138,24 @@ const AdminDashboard = () => {
         <div className="flex flex-col gap-2 mt-auto">
           <button 
             onClick={toggleTheme} 
-            className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--paper)] rounded-[3px] transition-colors"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            <span className="font-mono text-[11px] uppercase tracking-[.08em]">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            <span className="font-medium">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
           
           <button 
             onClick={handleLogout} 
-            className="flex items-center gap-3 px-4 py-3 text-[var(--red)] hover:bg-red-50 rounded-[3px] transition-colors"
+            className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
           >
             <LogOut size={20} />
-            <span className="font-mono text-[11px] uppercase tracking-[.08em]">Logout</span>
+            <span className="font-medium">Logout</span>
           </button>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="glass-panel flex-1 p-8 overflow-y-auto relative">
+      <div className="glass flex-1 p-8 overflow-y-auto relative">
         <Routes>
           <Route path="/" element={<AdminOverview />} />
           <Route path="/events" element={<AdminEvents />} />

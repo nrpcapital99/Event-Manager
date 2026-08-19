@@ -4,6 +4,7 @@ import { auth, db } from '../../firebase';
 import { signOut } from 'firebase/auth';
 import { collection, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { getTaskStyles } from '../../lib/utils';
+import '../admin/AdminCommandBoard.css';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -213,8 +214,8 @@ const EmployeeDashboard = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl glass-panel relative overflow-hidden min-h-[80vh] animate-in fade-in duration-500">
-      <div className="flex justify-between items-center mb-8 border-b border-black/10 dark:border-white/20 pb-4">
+    <div className="w-full max-w-6xl command-board-theme command-board-wrap relative overflow-hidden min-h-[80vh] animate-in fade-in duration-500">
+      <div className="flex justify-between items-center mb-8 border-b-2 border-[var(--ink)] pb-4">
         <div>
           <h1 className="text-3xl font-bold">Welcome, {employeeData.name}</h1>
           <p className="opacity-70 mt-1">Employee Workspace</p>

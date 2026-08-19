@@ -1,20 +1,20 @@
 .command-board-theme {
-  --cb-paper: #ECEFE8;
-  --cb-chalk: #fff;
-  --cb-ink: #17202A;
-  --cb-soft: #5A6672;
-  --cb-pine: #135E4C;
-  --cb-pine-lt: #7FA898;
-  --cb-plum: #6E2A50;
-  --cb-plum-lt: #B98BA6;
-  --cb-rule: #D2D7CB;
-  --cb-red: #8E2020;
-  --cb-amber: #8A6A12;
-  --cb-shadow: 0 1px 0 rgba(23,32,42,.06), 0 8px 24px -18px rgba(23,32,42,.5);
+  --paper: #ECEFE8;
+  --chalk: #fff;
+  --ink: #17202A;
+  --soft: #5A6672;
+  --pine: #135E4C;
+  --pine-lt: #7FA898;
+  --plum: #6E2A50;
+  --plum-lt: #B98BA6;
+  --rule: #D2D7CB;
+  --red: #8E2020;
+  --amber: #8A6A12;
+  --shadow: 0 1px 0 rgba(23,32,42,.06), 0 8px 24px -18px rgba(23,32,42,.5);
   
-  --cb-display: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
-  --cb-body: 'Newsreader', Georgia, serif;
-  --cb-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --display: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+  --body: 'Newsreader', Georgia, serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 /* Base resets for the board */
@@ -587,6 +587,30 @@
   padding: 5px 7px;
   background: var(--paper);
   color: var(--ink);
+}
+
+.command-board-theme .glass,
+.command-board-theme .glass-panel {
+  background: var(--chalk);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.command-board-theme .glass-input {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+.command-board-theme .btn-primary {
+  background: var(--ink);
+  color: var(--chalk);
+  border-radius: 3px;
+  font-family: var(--mono);
+  text-transform: uppercase;
 }
 
 @media(max-width: 820px) {

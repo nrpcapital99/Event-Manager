@@ -151,7 +151,7 @@ const AdminCommandBoard = () => {
   });
 
   return (
-    <div className="command-board-wrap animate-in fade-in duration-500 relative">
+    <div className="command-board-wrap command-board-theme animate-in fade-in duration-500 relative">
       
       {/* Seat Assignment Modal */}
       {showSeatModal && (
