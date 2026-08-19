@@ -11,7 +11,8 @@ import AdminEmployees from './AdminEmployees';
 import AdminClients from './AdminClients';
 import AdminAttendees from './AdminAttendees';
 import AdminResponsibilities from './AdminResponsibilities';
-import { Briefcase, ListOrdered, ClipboardList } from 'lucide-react';
+import AdminCommandBoard from './AdminCommandBoard';
+import { Briefcase, ListOrdered, ClipboardList, Target } from 'lucide-react';
 
 const AdminOverview = () => {
   return (
@@ -63,6 +64,14 @@ const AdminOverview = () => {
         <h3 className="text-2xl font-semibold mb-3">Responsibilities</h3>
         <p className="opacity-80">Assign event-day roles and filter tasks per team member.</p>
       </Link>
+      
+      <Link to="/admin/command-board" className="glass p-8 hover:shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div className="bg-red-500/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Target size={32} className="text-red-500" />
+        </div>
+        <h3 className="text-2xl font-semibold mb-3">Command Board</h3>
+        <p className="opacity-80">War room overview for event numbers, targets, and risks.</p>
+      </Link>
     </div>
   );
 };
@@ -94,6 +103,7 @@ const AdminDashboard = () => {
     { path: '/admin/employees', label: 'Employees', icon: Users },
     { path: '/admin/clients', label: 'Clients', icon: Briefcase },
     { path: '/admin/responsibilities', label: 'Responsibilities', icon: ClipboardList },
+    { path: '/admin/command-board', label: 'Command Board', icon: Target },
   ];
 
   return (
@@ -154,6 +164,7 @@ const AdminDashboard = () => {
           <Route path="/employees" element={<AdminEmployees />} />
           <Route path="/clients" element={<AdminClients />} />
           <Route path="/responsibilities" element={<AdminResponsibilities />} />
+          <Route path="/command-board" element={<AdminCommandBoard />} />
         </Routes>
       </div>
 
