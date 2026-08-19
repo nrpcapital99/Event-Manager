@@ -39,9 +39,28 @@
   }
 
   .dark {
-    /* Keep the same for dark mode or invert if needed, but let's stick to the cream theme mostly */
+    --paper: #111418;
+    --chalk: #1A2027;
+    --ink: #E2E8F0;
+    --soft: #94A3B8;
+    --pine: #34D399;
+    --pine-lt: #059669;
+    --plum: #F472B6;
+    --plum-lt: #DB2777;
+    --rule: #334155;
+    --red: #F87171;
+    --amber: #FBBF24;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 24px -18px rgba(0,0,0,.8);
+
+    --background: 222.2 84% 4.9%; /* Tailwind mapping */
+    --foreground: 210 40% 98%;
+    --primary: 160 84% 39%;
+    --destructive: 0 62.8% 30.6%;
+    --border: 215 27.9% 16.9%;
+    
     --glass-bg: var(--chalk);
     --glass-border: var(--rule);
+    --glass-shadow: var(--shadow);
     --glass-text: var(--ink);
   }
 }
@@ -56,6 +75,7 @@
     color: var(--ink);
     font-family: var(--body);
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
