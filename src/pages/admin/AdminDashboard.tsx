@@ -16,7 +16,7 @@ import { Briefcase, ListOrdered, ClipboardList, Target } from 'lucide-react';
 
 const AdminOverview = () => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-500">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 animate-in fade-in zoom-in duration-500">
       <Link to="/admin/events" className="glass p-8 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)] hover:-translate-y-1 transition-all duration-300 group">
         <div className="bg-primary/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
           <Calendar size={32} className="text-primary" />
@@ -107,10 +107,10 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="w-full max-w-7xl h-[90vh] flex flex-col md:flex-row gap-6 text-[var(--glass-text)]">
+    <div className="w-full min-h-screen flex flex-col md:flex-row gap-4 md:gap-6 p-4 md:p-6 text-[var(--glass-text)]">
       
       {/* Sidebar Navigation */}
-      <div className="glass w-full md:w-64 h-full flex flex-col justify-between p-6">
+      <div className="glass w-full md:w-64 flex-none flex flex-col justify-between p-4 md:p-6">
         <div>
           <h2 className="text-2xl font-bold tracking-wider mb-8 text-transparent bg-clip-text bg-gradient-to-r from-primary to-pink-500">
             NRP EventManager

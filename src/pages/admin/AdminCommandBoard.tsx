@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import './AdminCommandBoard.css';
 
 const AdminCommandBoard = ({ 
@@ -79,6 +79,17 @@ const AdminCommandBoard = ({
       setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
     } catch (err) {
       console.error("Error updating task", err);
+    }
+  };
+
+  const deleteTask = async (taskId: string) => {
+    if (isEmployeeMode) return;
+    if (!window.confirm('Delete this task forever?')) return;
+    try {
+      await deleteDoc(doc(db, 'tasks', taskId));
+      setTasks(tasks.filter(t => t.id !== taskId));
+    } catch (err) {
+      console.error("Error deleting task", err);
     }
   };
 
@@ -360,15 +371,26 @@ const AdminCommandBoard = ({
                 <div className="targetrow" style={{marginTop: '5px'}}>{o.pct}% of tasks completed</div>
                 <ul className="tasks">
                   {o.tasks.map((t, i) => (
-                    <li key={i} className={t.status === 'completed' ? 'done' : ''}>
-                      <input 
-                        type="checkbox" 
-                        checked={t.status === 'completed'} 
-                        onChange={() => toggleTaskStatus(t.id, t.status)}
-                        className="cursor-pointer"
-                        disabled={isEmployeeMode}
-                      />
-                      <span className="cursor-pointer" onClick={() => toggleTaskStatus(t.id, t.status)}>{t.title}</span>
+                    <li key={i} className={`flex justify-between items-start gap-2 ${t.status === 'completed' ? 'done' : ''}`}>
+                      <div className="flex items-start gap-2 flex-1">
+                        <input 
+                          type="checkbox" 
+                          checked={t.status === 'completed'} 
+                          onChange={() => toggleTaskStatus(t.id, t.status)}
+                          className="cursor-pointer mt-1"
+                          disabled={isEmployeeMode}
+                        />
+                        <span className="cursor-pointer leading-tight pt-0.5" onClick={() => toggleTaskStatus(t.id, t.status)}>{t.title}</span>
+                      </div>
+                      {!isEmployeeMode && (
+                        <button 
+                          onClick={() => deleteTask(t.id)} 
+                          className="text-[var(--red)] opacity-30 hover:opacity-100 font-mono text-[10px] px-1 pb-1"
+                          title="Delete task"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

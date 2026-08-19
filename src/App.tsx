@@ -6,7 +6,7 @@ import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center">
+      <div className="min-h-screen w-full">
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />

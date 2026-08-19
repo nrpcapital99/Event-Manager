@@ -615,8 +615,19 @@
 
 @media(max-width: 820px) {
   .command-board-theme .two { grid-template-columns: 1fr; }
+  .command-board-theme .stats { gap: 10px; }
+  .command-board-theme .rates { flex-direction: row; flex-wrap: wrap; }
 }
 
 @media(max-width: 700px) {
-  .command-board-theme .seat-grid { grid-template-columns: repeat(20, 1fr); }
+  .command-board-theme .seat-grid { grid-template-columns: repeat(20, 1fr); gap: 2px; }
+  .command-board-theme .clock .num { font-size: 32px; }
+  .command-board-theme h1 { font-size: 24px; }
+}
+
+@media(max-width: 480px) {
+  .command-board-theme .seat-grid { grid-template-columns: repeat(10, 1fr); gap: 2px; }
+  .command-board-theme .stat .v { font-size: 24px; }
+  .command-board-theme .levers { grid-template-columns: 1fr; }
+  .command-board-wrap { padding: 16px 12px 60px; }
 }
