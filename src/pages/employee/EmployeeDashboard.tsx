@@ -10,14 +10,12 @@ import AdminCommandBoard from '../admin/AdminCommandBoard';
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const employeeData = location.state?.employeeData || { name: 'Employee', id: '' };
+  const employeeData = location.state?.employeeData;
 
   const [events, setEvents] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [tasks, setTasks] = useState<any[]>([]);
   const [newExpense, setNewExpense] = useState({ description: '', amount: '' });
-  const [remarksDrafts, setRemarksDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!employeeData.id) {
@@ -41,50 +39,15 @@ const EmployeeDashboard = () => {
       setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
-    const unsubEmployees = onSnapshot(collection(db, 'codes'), (snapshot) => {
-      setEmployees(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
     return () => {
       unsubEvents();
       unsubTasks();
-      unsubEmployees();
     };
   }, [employeeData.id, navigate, selectedEventId]);
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/login');
-  };
-
-  const handleToggleTaskStatus = async (task: any) => {
-    let newCompletedBy = task.completedBy || [];
-    
-    if (newCompletedBy.includes(employeeData.id)) {
-      // Unmark complete (withdraw consensus)
-      newCompletedBy = newCompletedBy.filter((id: string) => id !== employeeData.id);
-      await updateDoc(doc(db, 'tasks', task.id), { 
-        completedBy: newCompletedBy,
-        status: 'pending'
-      });
-    } else {
-      // Mark complete
-      newCompletedBy = [...newCompletedBy, employeeData.id];
-      const allDone = task.employeeIds.every((id: string) => newCompletedBy.includes(id));
-      
-      const updates: any = { completedBy: newCompletedBy };
-      if (allDone) {
-        updates.status = 'completed';
-        updates.completedAt = new Date();
-      }
-      await updateDoc(doc(db, 'tasks', task.id), updates);
-    }
-  };
-
-  const handleSaveRemark = async (taskId: string, currentRemarks: string) => {
-    const newRemark = remarksDrafts[taskId];
-    if (newRemark === undefined || currentRemarks === newRemark) return; // no change
-    await updateDoc(doc(db, 'tasks', taskId), { remarks: newRemark });
   };
 
   const handleAddExpense = async () => {
@@ -138,9 +101,6 @@ const EmployeeDashboard = () => {
     if (isNaN(timeB)) return -1;
     return timeA - timeB;
   }) : [];
-  
-  const myTasks = eventTasks.filter(t => t.employeeIds?.includes(employeeData.id));
-  const otherTasks = eventTasks.filter(t => !t.employeeIds?.includes(employeeData.id));
 
   // Gantt Chart Rendering Logic
   const renderGanttChart = () => {
@@ -271,88 +231,6 @@ const EmployeeDashboard = () => {
             </div>
             <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
               {renderGanttChart()}
-            </div>
-          </div>
-
-          {/* Tasks Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* My Tasks */}
-            <div className="glass-panel !p-5 !border-t-2 !border-t-[var(--plum)]">
-              <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2">My Tasks</h3>
-              {myTasks.length === 0 ? (
-                <p className="text-[var(--soft)] font-mono text-xs">You have no tasks for this event.</p>
-              ) : (
-                <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                  {myTasks.map(task => {
-                    const styles = getTaskStyles(task);
-                    const iHaveCompleted = task.completedBy?.includes(employeeData.id);
-                    
-                    return (
-                    <div key={task.id} className={`p-3 border rounded-[3px] transition-all ${task.status === 'completed' ? 'bg-[#EDF2EE] border-[var(--pine-lt)]' : 'bg-white border-[var(--rule)]'}`}>
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-sm block leading-tight">{task.title}</span>
-                        <span className={`${styles.badge} px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-mono`}>
-                          {styles.label}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[var(--soft)] mb-2 leading-snug">{task.description}</p>
-                      
-                      <textarea 
-                        className="w-full text-xs p-2 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] min-h-[45px] mb-2 font-mono text-[var(--ink)] resize-none"
-                        placeholder="Updates / issues..."
-                        value={remarksDrafts[task.id] !== undefined ? remarksDrafts[task.id] : (task.remarks || '')}
-                        onChange={(e) => setRemarksDrafts(prev => ({...prev, [task.id]: e.target.value}))}
-                        onBlur={() => handleSaveRemark(task.id, task.remarks || '')}
-                      />
-                      
-                      <div className="flex items-center justify-between border-t border-[var(--rule)] pt-2 mt-1">
-                        <span className="font-mono text-[10px] text-[var(--soft)]">
-                          Due: {new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                        <button 
-                          onClick={() => handleToggleTaskStatus(task)}
-                          className={`text-[10px] px-2 py-1 rounded-[2px] font-mono uppercase tracking-wider transition-all ${iHaveCompleted ? 'bg-[var(--rule)] text-[var(--ink)] hover:bg-[var(--soft)] hover:text-white' : 'bg-[var(--plum)] text-white hover:bg-[var(--plum-lt)]'}`}
-                        >
-                          {iHaveCompleted ? 'Undo' : 'Complete'}
-                        </button>
-                      </div>
-                    </div>
-                  )})}
-                </div>
-              )}
-            </div>
-
-            {/* Team Tasks */}
-            <div className="glass-panel !p-5">
-              <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2 text-[var(--soft)]">Team Tasks</h3>
-              {otherTasks.length === 0 ? (
-                <p className="text-[var(--soft)] font-mono text-xs">No other tasks assigned to the team.</p>
-              ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                  {otherTasks.map(task => {
-                    const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
-                    return (
-                      <div key={task.id} className="p-2 border border-[var(--rule)] rounded-[2px] bg-white text-sm">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium truncate pr-2">{task.title}</span>
-                        </div>
-                        <div className="font-mono text-[9px] text-[var(--soft)] mb-1.5">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
-                        
-                        <div className="flex flex-wrap gap-1">
-                          {assignedEmps.length > 0 ? assignedEmps.map(emp => (
-                            <span key={emp.id} className="font-mono text-[9px] bg-[var(--paper)] px-1.5 py-0.5 rounded-[2px] text-[var(--ink)] border border-[var(--rule)]">
-                              {emp.name}
-                            </span>
-                          )) : (
-                            <span className="font-mono text-[9px] italic text-[var(--soft)]">Unassigned</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
         </div>

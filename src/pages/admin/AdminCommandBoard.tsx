@@ -71,12 +71,33 @@ const AdminCommandBoard = ({
     fetchData();
   }, [isEmployeeMode, employeeData]);
 
-  const toggleTaskStatus = async (taskId: string, currentStatus: string) => {
-    if (isEmployeeMode) return; // Employees should use their dashboard to toggle tasks for tracking 'completedBy'
-    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+  const toggleTaskStatus = async (taskId: string, currentStatus: string, taskEmployeeIds?: string[], taskCompletedBy?: string[]) => {
     try {
-      await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+      if (isEmployeeMode && employeeData) {
+        // Employee logic: track partial completions
+        const isCompletedByMe = taskCompletedBy?.includes(employeeData.id);
+        let newCompletedBy = taskCompletedBy || [];
+        if (isCompletedByMe) {
+          newCompletedBy = newCompletedBy.filter(id => id !== employeeData.id);
+        } else {
+          newCompletedBy = [...newCompletedBy, employeeData.id];
+        }
+        
+        const assignedIds = taskEmployeeIds || [];
+        const allDone = assignedIds.length > 0 && assignedIds.every(id => newCompletedBy.includes(id));
+        const newStatus = allDone ? 'completed' : 'pending';
+        
+        await updateDoc(doc(db, 'tasks', taskId), {
+          completedBy: newCompletedBy,
+          status: newStatus
+        });
+        setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus, completedBy: newCompletedBy } : t));
+      } else {
+        // Admin logic: force toggle
+        const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+        await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
+        setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+      }
     } catch (err) {
       console.error("Error updating task", err);
     }
@@ -349,12 +370,7 @@ const AdminCommandBoard = ({
         </section>
       )}
 
-      {isEmployeeMode && children ? (
-        <section>
-          {children}
-        </section>
-      ) : (
-        <section>
+      <section>
           <div className="shead">
             <h2>Task Completion by Team</h2>
             <span className="note">Live task metrics for this event</span>
@@ -370,29 +386,45 @@ const AdminCommandBoard = ({
                 <div className="bar"><i className={o.pct < 34 && o.tasks.length > 0 ? 'hot' : ''} style={{width: `${o.pct}%`}}></i></div>
                 <div className="targetrow" style={{marginTop: '5px'}}>{o.pct}% of tasks completed</div>
                 <ul className="tasks">
-                  {o.tasks.map((t, i) => (
-                    <li key={i} className={`flex justify-between items-start gap-2 ${t.status === 'completed' ? 'done' : ''}`}>
-                      <div className="flex items-start gap-2 flex-1">
-                        <input 
-                          type="checkbox" 
-                          checked={t.status === 'completed'} 
-                          onChange={() => toggleTaskStatus(t.id, t.status)}
-                          className="cursor-pointer mt-1"
-                          disabled={isEmployeeMode}
-                        />
-                        <span className="cursor-pointer leading-tight pt-0.5" onClick={() => toggleTaskStatus(t.id, t.status)}>{t.title}</span>
-                      </div>
-                      {!isEmployeeMode && (
-                        <button 
-                          onClick={() => deleteTask(t.id)} 
-                          className="text-[var(--red)] opacity-30 hover:opacity-100 font-mono text-[10px] px-1 pb-1"
-                          title="Delete task"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </li>
-                  ))}
+                  {o.tasks.map((t, i) => {
+                    const isMyTask = isEmployeeMode && t.employeeIds?.includes(employeeData?.id);
+                    const iHaveCompleted = isEmployeeMode && t.completedBy?.includes(employeeData?.id);
+                    // A task is shown as 'done' visually if it's fully completed OR if I've completed my part
+                    const isVisuallyDone = t.status === 'completed' || iHaveCompleted;
+
+                    return (
+                      <li key={i} className={`flex justify-between items-start gap-2 ${isVisuallyDone ? 'done' : ''}`}>
+                        <div className="flex items-start gap-2 flex-1">
+                          <input 
+                            type="checkbox" 
+                            checked={isVisuallyDone} 
+                            onChange={() => toggleTaskStatus(t.id, t.status, t.employeeIds, t.completedBy)}
+                            className="cursor-pointer mt-1"
+                            disabled={isEmployeeMode && !isMyTask}
+                          />
+                          <span 
+                            className="cursor-pointer leading-tight pt-0.5" 
+                            onClick={() => {
+                              if (!isEmployeeMode || isMyTask) {
+                                toggleTaskStatus(t.id, t.status, t.employeeIds, t.completedBy);
+                              }
+                            }}
+                          >
+                            {t.title}
+                          </span>
+                        </div>
+                        {!isEmployeeMode && (
+                          <button 
+                            onClick={() => deleteTask(t.id)} 
+                            className="text-[var(--red)] opacity-30 hover:opacity-100 font-mono text-[10px] px-1 pb-1"
+                            title="Delete task"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
                 {!isEmployeeMode && (
                   <div className="mt-3 border-t border-[var(--rule)] pt-2">
@@ -414,8 +446,12 @@ const AdminCommandBoard = ({
             {owners.length === 0 && <div className="text-sm opacity-50 p-4 italic">No team members assigned to this event yet.</div>}
           </div>
         </section>
-      )}
 
+      {isEmployeeMode && children && (
+        <section className="mt-8 border-t-2 border-[var(--ink)] pt-8">
+          {children}
+        </section>
+      )}
     </div>
   );
 };
