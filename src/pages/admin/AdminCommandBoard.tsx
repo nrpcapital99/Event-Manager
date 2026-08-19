@@ -213,7 +213,7 @@ const AdminCommandBoard = ({
     let seats = [];
     for (let i = 1; i <= CAP; i++) {
       // Find if anyone is assigned to this specific seat
-      const occupant = eventAttendees.find(a => a.seatNumber === i);
+      const occupant = eventAttendees.find((a: any) => a.seatNumber === i);
       
       let cssClass = 'cursor-pointer hover:scale-125 transition-transform';
       if (occupant) {
@@ -271,7 +271,7 @@ const AdminCommandBoard = ({
               defaultValue=""
             >
               <option value="" disabled>Select an Attendee...</option>
-              {eventAttendees.map(att => (
+              {eventAttendees.map((att: any) => (
                 <option key={att.id} value={att.id}>
                   {att.name} {att.seatNumber ? `(Currently Seat ${att.seatNumber})` : ''}
                 </option>
