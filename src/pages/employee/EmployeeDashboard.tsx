@@ -214,207 +214,190 @@ const EmployeeDashboard = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl command-board-theme command-board-wrap relative overflow-hidden min-h-[80vh] animate-in fade-in duration-500">
-      <div className="flex justify-between items-center mb-8 border-b-2 border-[var(--ink)] pb-4">
-        <div>
-          <h1 className="text-3xl font-bold">Welcome, {employeeData.name}</h1>
-          <p className="opacity-70 mt-1">Employee Workspace</p>
-        </div>
-        <button onClick={handleLogout} className="px-4 py-2 bg-red-500/10 text-red-600 dark:text-red-400 font-medium rounded-lg hover:bg-red-500/20 transition-colors">
-          Sign Out
-        </button>
-      </div>
+    <div className="w-full max-w-7xl mx-auto command-board-theme command-board-wrap relative overflow-hidden min-h-[90vh] animate-in fade-in duration-500 !p-6">
       
-      {events.length === 0 ? (
-        <div className="glass p-12 text-center border border-pink-500/20">
-          <h3 className="text-2xl font-bold mb-2">No Events Assigned</h3>
-          <p className="opacity-70">You are currently not assigned to any events. Please contact your administrator.</p>
+      {/* Tight Header */}
+      <header className="flex justify-between items-end mb-6 pb-4 border-b-2 border-[var(--ink)]">
+        <div>
+          <div className="eyebrow !text-[var(--ink)] mb-1">Employee Workspace / {employeeData.name}</div>
+          <h1 className="text-3xl leading-none m-0 p-0">
+            {events.length === 0 ? 'No Assignments' : (selectedEvent?.name || 'Select an Event')}
+          </h1>
         </div>
-      ) : (
-        <>
-          <div className="mb-8">
-            <label className="block text-sm font-bold opacity-70 uppercase tracking-wider mb-2">Select Event Workspace</label>
+        
+        <div className="flex items-center gap-4">
+          {events.length > 0 && (
             <select 
-              className="glass-input !w-auto bg-white/50 dark:bg-black/20 font-bold text-xl px-4 py-3 border-pink-500/30"
+              className="cb-select !text-sm !py-1.5"
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
             >
-              {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
+              {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
             </select>
-          </div>
-
-          {/* Live Gantt Chart Section */}
-          <div className="glass p-8 mb-8 border border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.1)]">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-pink-500">
-              Live Gantt Timeline
-              <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse uppercase tracking-wider font-bold">Live</span>
-            </h3>
-            {renderGanttChart()}
-          </div>
+          )}
+          <button onClick={handleLogout} className="btn-secondary !border-[var(--red)] !text-[var(--red)] !bg-transparent hover:!bg-[#FBF0EE]">
+            Sign Out
+          </button>
+        </div>
+      </header>
+      
+      {events.length === 0 ? (
+        <div className="glass-panel text-center py-12">
+          <h3 className="disp text-xl mb-2">No Events Assigned</h3>
+          <p className="text-[var(--soft)] font-mono text-sm">You are currently not assigned to any events. Please contact your administrator.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Event Expenses */}
-          <div className="glass p-6 mb-8 border-l-4 border-l-green-500">
-            <h3 className="text-2xl font-bold mb-4">Event Expenses</h3>
-            <p className="opacity-70 text-sm mb-4">Submit expenses for this event. These will be reviewed by the event administrators.</p>
+          {/* Main Left Column (8 cols) */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
             
-            <div className="flex gap-4 mb-6 flex-wrap">
-              <input type="text" placeholder="Expense description (e.g. Uber, Catering supplies)" className="glass-input flex-1 min-w-[200px]" value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} />
-              <input type="number" placeholder="Amount (₹)" className="glass-input w-32" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
-              <button onClick={handleAddExpense} className="btn-primary whitespace-nowrap bg-green-500 hover:bg-green-600 text-white">Submit Expense</button>
-            </div>
-            
-            <div className="space-y-3">
-              <h4 className="font-bold text-sm uppercase tracking-wider opacity-50">Recent Expenses Logged by You</h4>
-              {(selectedEvent?.expenses || []).filter((exp: any) => exp.addedBy === employeeData.name).length === 0 ? (
-                <p className="text-sm opacity-50 italic">You haven't logged any expenses for this event yet.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-black/10 dark:border-white/10 opacity-70">
-                        <th className="pb-2">Date</th>
-                        <th className="pb-2">Description</th>
-                        <th className="pb-2 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(selectedEvent?.expenses || [])
-                        .filter((exp: any) => exp.addedBy === employeeData.name)
-                        .map((exp: any) => (
-                        <tr key={exp.id} className="border-b border-black/5 dark:border-white/5">
-                          <td className="py-2 opacity-70">{new Date(exp.date).toLocaleDateString()}</td>
-                          <td className="py-2 font-medium">{exp.description}</td>
-                          <td className="py-2 font-mono text-right text-green-600 dark:text-green-400 font-bold">₹{exp.amount.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* My Tasks */}
-            <div className="glass p-6 border-t-4 border-t-pink-500">
-              <h3 className="text-2xl font-bold mb-4">My Tasks</h3>
-              {myTasks.length === 0 ? (
-                <p className="opacity-50 text-sm">You have no tasks for this event.</p>
-              ) : (
-                <div className="space-y-4">
-                  {myTasks.map(task => {
-                    const styles = getTaskStyles(task);
-                    const iHaveCompleted = task.completedBy?.includes(employeeData.id);
-                    const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
-                    
-                    return (
-                    <div key={task.id} className={`p-4 border rounded-lg transition-all ${task.status === 'completed' ? 'bg-green-500/5 border-green-500/20 opacity-70' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <span className="font-bold text-lg block">{task.title}</span>
-                          <span className="text-xs font-bold uppercase tracking-wider opacity-60 text-pink-500">{task.category}</span>
-                        </div>
-                        <span className={`${styles.badge} px-2 py-1 rounded text-xs uppercase tracking-wider font-bold`}>
-                          {styles.label}
-                        </span>
-                      </div>
-                      <p className="text-sm opacity-80 mb-3">{task.description}</p>
-                      
-                      {assignedEmps.length > 1 && (
-                        <div className="mb-4">
-                          <p className="text-xs font-bold opacity-50 mb-1 uppercase tracking-wider">Team on this task:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {assignedEmps.map(emp => {
-                              const empDone = task.completedBy?.includes(emp.id);
-                              return (
-                                <span key={emp.id} className={`text-xs px-2 py-0.5 rounded-full ${empDone ? 'bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/30' : 'bg-black/10 dark:bg-white/10 opacity-70'}`}>
-                                  {emp.name} {empDone && '✓'}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="mb-4">
-                        <p className="text-xs font-bold opacity-50 mb-1 uppercase tracking-wider">Remarks / Updates:</p>
-                        <textarea 
-                          className="w-full text-sm p-2 rounded bg-white/50 dark:bg-black/20 border border-black/10 dark:border-white/10 min-h-[60px] mb-2"
-                          placeholder="Add your updates, issues, or reasons for delay here..."
-                          value={remarksDrafts[task.id] !== undefined ? remarksDrafts[task.id] : (task.remarks || '')}
-                          onChange={(e) => setRemarksDrafts(prev => ({...prev, [task.id]: e.target.value}))}
-                        />
-                        {remarksDrafts[task.id] !== undefined && remarksDrafts[task.id] !== (task.remarks || '') && (
-                          <div className="flex justify-end">
-                            <button 
-                              onClick={() => handleSaveRemark(task.id, task.remarks || '')}
-                              className="text-xs bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded font-bold transition-colors"
-                            >
-                              Update Remarks
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between border-t border-black/10 dark:border-white/10 pt-3">
-                        <span className="text-sm font-medium opacity-70">
-                          Due: {new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          {iHaveCompleted && task.status !== 'completed' && (
-                            <span className="text-xs text-yellow-600 dark:text-yellow-400 font-bold italic animate-pulse">Waiting on team...</span>
-                          )}
-                          <button 
-                            onClick={() => handleToggleTaskStatus(task)}
-                            className={`text-sm px-4 py-1.5 rounded font-bold transition-all ${iHaveCompleted ? 'bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20' : 'bg-pink-500 text-white hover:bg-pink-600'}`}
-                          >
-                            {iHaveCompleted ? 'Withdraw Complete' : 'Mark Complete'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )})}
-                </div>
-              )}
+            {/* Live Gantt Chart Section */}
+            <div className="glass-panel !p-5">
+              <div className="flex justify-between items-end mb-4 border-b border-[var(--rule)] pb-2">
+                <h2 className="disp text-lg text-[var(--pine)] flex items-center gap-2 m-0">
+                  Live Gantt Timeline
+                  <span className="bg-[var(--pine)] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm animate-pulse uppercase tracking-wider">Live</span>
+                </h2>
+              </div>
+              <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                {renderGanttChart()}
+              </div>
             </div>
 
-            {/* Team Tasks */}
-            <div className="glass p-6">
-              <h3 className="text-2xl font-bold mb-4 opacity-80">Team Tasks</h3>
-              {otherTasks.length === 0 ? (
-                <p className="opacity-50 text-sm">No other tasks assigned to the team.</p>
-              ) : (
-                <div className="space-y-4">
-                  {otherTasks.map(task => {
-                    const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
-                    const styles = getTaskStyles(task);
-                    return (
-                      <div key={task.id} className="p-3 border border-black/5 dark:border-white/5 rounded-lg bg-black/5 dark:bg-white/5 opacity-80 hover:opacity-100 transition-opacity">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium">{task.title}</span>
-                          <span className={`${styles.badge} text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold`}>
+            {/* Tasks Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* My Tasks */}
+              <div className="glass-panel !p-5 !border-t-2 !border-t-[var(--plum)]">
+                <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2">My Tasks</h3>
+                {myTasks.length === 0 ? (
+                  <p className="text-[var(--soft)] font-mono text-xs">You have no tasks for this event.</p>
+                ) : (
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    {myTasks.map(task => {
+                      const styles = getTaskStyles(task);
+                      const iHaveCompleted = task.completedBy?.includes(employeeData.id);
+                      
+                      return (
+                      <div key={task.id} className={`p-3 border rounded-[3px] transition-all ${task.status === 'completed' ? 'bg-[#EDF2EE] border-[var(--pine-lt)]' : 'bg-white border-[var(--rule)]'}`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold text-sm block leading-tight">{task.title}</span>
+                          <span className={`${styles.badge} px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-mono`}>
                             {styles.label}
                           </span>
                         </div>
-                        <div className="text-xs opacity-60 mb-2">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
+                        <p className="text-xs text-[var(--soft)] mb-2 leading-snug">{task.description}</p>
                         
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {assignedEmps.length > 0 ? assignedEmps.map(emp => (
-                            <span key={emp.id} className="text-[10px] bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-full">
-                              {emp.name}
-                            </span>
-                          )) : (
-                            <span className="text-[10px] italic opacity-50">Unassigned</span>
-                          )}
+                        <textarea 
+                          className="w-full text-xs p-2 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] min-h-[45px] mb-2 font-mono text-[var(--ink)] resize-none"
+                          placeholder="Updates / issues..."
+                          value={remarksDrafts[task.id] !== undefined ? remarksDrafts[task.id] : (task.remarks || '')}
+                          onChange={(e) => setRemarksDrafts(prev => ({...prev, [task.id]: e.target.value}))}
+                          onBlur={() => handleSaveRemark(task.id, task.remarks || '')}
+                        />
+                        
+                        <div className="flex items-center justify-between border-t border-[var(--rule)] pt-2 mt-1">
+                          <span className="font-mono text-[10px] text-[var(--soft)]">
+                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
+                          <button 
+                            onClick={() => handleToggleTaskStatus(task)}
+                            className={`text-[10px] px-2 py-1 rounded-[2px] font-mono uppercase tracking-wider transition-all ${iHaveCompleted ? 'bg-[var(--rule)] text-[var(--ink)] hover:bg-[var(--soft)] hover:text-white' : 'bg-[var(--plum)] text-white hover:bg-[var(--plum-lt)]'}`}
+                          >
+                            {iHaveCompleted ? 'Undo' : 'Complete'}
+                          </button>
                         </div>
                       </div>
-                    );
-                  })}
+                    )})}
+                  </div>
+                )}
+              </div>
+
+              {/* Team Tasks */}
+              <div className="glass-panel !p-5">
+                <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2 text-[var(--soft)]">Team Tasks</h3>
+                {otherTasks.length === 0 ? (
+                  <p className="text-[var(--soft)] font-mono text-xs">No other tasks assigned to the team.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    {otherTasks.map(task => {
+                      const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
+                      return (
+                        <div key={task.id} className="p-2 border border-[var(--rule)] rounded-[2px] bg-white text-sm">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-medium truncate pr-2">{task.title}</span>
+                          </div>
+                          <div className="font-mono text-[9px] text-[var(--soft)] mb-1.5">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
+                          
+                          <div className="flex flex-wrap gap-1">
+                            {assignedEmps.length > 0 ? assignedEmps.map(emp => (
+                              <span key={emp.id} className="font-mono text-[9px] bg-[var(--paper)] px-1.5 py-0.5 rounded-[2px] text-[var(--ink)] border border-[var(--rule)]">
+                                {emp.name}
+                              </span>
+                            )) : (
+                              <span className="font-mono text-[9px] italic text-[var(--soft)]">Unassigned</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column (4 cols) */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            
+            {/* Event Expenses */}
+            <div className="glass-panel !p-5 !border-l-4 !border-l-[var(--pine)] h-full">
+              <h3 className="disp text-lg mb-2">Expenses</h3>
+              <p className="text-[var(--soft)] text-xs mb-4">Submit expenses for admin review.</p>
+              
+              <div className="flex flex-col gap-2 mb-6">
+                <input 
+                  type="text" 
+                  placeholder="Description (e.g. Uber)" 
+                  className="glass-input !text-sm !p-2" 
+                  value={newExpense.description} 
+                  onChange={e => setNewExpense({...newExpense, description: e.target.value})} 
+                />
+                <div className="flex gap-2">
+                  <input 
+                    type="number" 
+                    placeholder="₹ Amount" 
+                    className="glass-input !text-sm !p-2 flex-1" 
+                    value={newExpense.amount} 
+                    onChange={e => setNewExpense({...newExpense, amount: e.target.value})} 
+                  />
+                  <button onClick={handleAddExpense} className="btn-primary !bg-[var(--pine)] !text-[11px] !px-3">Submit</button>
+                </div>
+              </div>
+              
+              <h4 className="font-mono text-[10px] uppercase tracking-wider text-[var(--soft)] mb-2 border-b border-[var(--rule)] pb-1">Your Logged Expenses</h4>
+              {(selectedEvent?.expenses || []).filter((exp: any) => exp.addedBy === employeeData.name).length === 0 ? (
+                <p className="text-[var(--soft)] font-mono text-[10px] italic">No expenses logged.</p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                  {(selectedEvent?.expenses || [])
+                    .filter((exp: any) => exp.addedBy === employeeData.name)
+                    .map((exp: any) => (
+                    <div key={exp.id} className="flex justify-between items-center text-sm border-b border-[var(--rule)] pb-1">
+                      <div>
+                        <div className="font-medium text-xs leading-tight">{exp.description}</div>
+                        <div className="font-mono text-[9px] text-[var(--soft)]">{new Date(exp.date).toLocaleDateString()}</div>
+                      </div>
+                      <div className="font-mono font-bold text-[var(--pine)] text-sm">₹{exp.amount.toFixed(0)}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
+            
           </div>
-        </>
+        </div>
       )}
     </div>
   );
