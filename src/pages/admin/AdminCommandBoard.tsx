@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import './AdminCommandBoard.css';
 
 const AdminCommandBoard = () => {
@@ -12,12 +12,15 @@ const AdminCommandBoard = () => {
   const [likelyRate, setLikelyRate] = useState(30);
   const [callYes, setCallYes] = useState(40);
   const [party, setParty] = useState(1.8);
-  // const [newFaceTarget, setNewFaceTarget] = useState(30);
 
   // Data for the board
   const [attendees, setAttendees] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+
+  // Seat Map Modal State
+  const [showSeatModal, setShowSeatModal] = useState(false);
+  const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
 
   const fetchData = async () => {
     try {
@@ -45,6 +48,35 @@ const AdminCommandBoard = () => {
     fetchData();
   }, []);
 
+  const toggleTaskStatus = async (taskId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    try {
+      await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
+      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    } catch (err) {
+      console.error("Error updating task", err);
+    }
+  };
+
+  const assignSeatToAttendee = async (attendeeId: string) => {
+    if (selectedSeat === null) return;
+    
+    // Unassign this seat from anyone else first
+    const existingOccupant = attendees.find(a => a.eventId === selectedEventId && a.seatNumber === selectedSeat);
+    if (existingOccupant) {
+      await updateDoc(doc(db, 'attendees', existingOccupant.id), { seatNumber: null });
+    }
+
+    // Assign to new attendee
+    if (attendeeId) {
+      await updateDoc(doc(db, 'attendees', attendeeId), { seatNumber: selectedSeat });
+    }
+    
+    setShowSeatModal(false);
+    setSelectedSeat(null);
+    fetchData(); // Refresh all attendees to get updated seats
+  };
+
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const eventAttendees = attendees.filter(a => a.eventId === selectedEventId);
   const eventTasks = tasks.filter(t => t.eventId === selectedEventId);
@@ -66,7 +98,6 @@ const AdminCommandBoard = () => {
   const needSeats = Math.ceil(CAP / (yesRate / 100));
   const needNames = Math.ceil(CAP / ((callYes / 100) * party * (yesRate / 100)));
   const shortNames = Math.max(0, needNames - LIST);
-  // const pc = prospects.filter(p => ['Confirmed', 'Came'].includes(p.stage)).length;
 
   const daysToEvent = selectedEvent?.eventDate ? 
     Math.ceil((selectedEvent.eventDate.toDate().getTime() - new Date().getTime()) / 86400000) : 0;
@@ -74,15 +105,31 @@ const AdminCommandBoard = () => {
   const tminusText = daysToEvent > 0 ? `T-${daysToEvent}` : (daysToEvent === 0 ? 'TODAY' : 'DONE');
   const tlabText = daysToEvent > 1 ? 'days to doors' : (daysToEvent === 1 ? 'day to doors' : 'the room is live');
 
-  // Render the seat grid
+  // Render the seat grid (Interactive)
   const renderRoomGrid = () => {
     let seats = [];
     for (let i = 1; i <= CAP; i++) {
-      let cssClass = '';
-      if (i <= expected) cssClass = 'show';
-      else if (i <= Math.min(CAP, firmYes + likely)) cssClass = 'risk';
+      // Find if anyone is assigned to this specific seat
+      const occupant = eventAttendees.find(a => a.seatNumber === i);
       
-      seats.push(<div key={i} className={`seat ${cssClass}`}></div>);
+      let cssClass = 'cursor-pointer hover:scale-125 transition-transform';
+      if (occupant) {
+        cssClass += ' show'; // Green if explicitly assigned
+      } else if (i <= expected) {
+        cssClass += ' risk'; // Light green if projected
+      }
+      
+      seats.push(
+        <div 
+          key={i} 
+          className={`seat ${cssClass}`}
+          title={occupant ? `Seat ${i}: ${occupant.name}` : `Seat ${i} (Available)`}
+          onClick={() => {
+            setSelectedSeat(i);
+            setShowSeatModal(true);
+          }}
+        ></div>
+      );
     }
     return seats;
   };
@@ -104,10 +151,38 @@ const AdminCommandBoard = () => {
   });
 
   return (
-    <div className="command-board-wrap command-board-theme animate-in fade-in duration-500">
+    <div className="command-board-wrap animate-in fade-in duration-500 relative">
       
+      {/* Seat Assignment Modal */}
+      {showSeatModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--chalk)] p-6 rounded-[4px] border border-[var(--rule)] shadow-2xl max-w-md w-full">
+            <h3 className="disp text-xl mb-4">Assign Seat {selectedSeat}</h3>
+            <p className="text-[var(--soft)] mb-4 font-mono text-sm">Select an attendee to reserve this seat.</p>
+            
+            <select 
+              className="glass-input mb-6"
+              onChange={(e) => assignSeatToAttendee(e.target.value)}
+              defaultValue=""
+            >
+              <option value="" disabled>Select an Attendee...</option>
+              {eventAttendees.map(att => (
+                <option key={att.id} value={att.id}>
+                  {att.name} {att.seatNumber ? `(Currently Seat ${att.seatNumber})` : ''}
+                </option>
+              ))}
+            </select>
+            
+            <div className="flex gap-4">
+              <button className="btn-secondary flex-1" onClick={() => setShowSeatModal(false)}>Cancel</button>
+              <button className="btn-primary bg-[var(--red)] flex-1" onClick={() => assignSeatToAttendee('')}>Clear Seat</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 flex items-center justify-between">
-        <div className="eyebrow !text-[var(--cb-ink)] font-bold text-lg">Event Selection</div>
+        <div className="eyebrow !text-[var(--ink)] font-bold text-lg">Event Selection</div>
         <select 
           className="cb-select"
           value={selectedEventId}
@@ -159,8 +234,8 @@ const AdminCommandBoard = () => {
           </div>
           <div className="seat-grid">{renderRoomGrid()}</div>
           <div className="legend">
-            <span><i className="sw a"></i>expected to walk in</span>
-            <span><i className="sw b"></i>confirmed but discounted for no shows</span>
+            <span><i className="sw a"></i>assigned manually</span>
+            <span><i className="sw b"></i>projected from conversion levers</span>
             <span><i className="sw"></i>empty chair</span>
           </div>
           {gap === 0 ? (
@@ -190,7 +265,7 @@ const AdminCommandBoard = () => {
             </div>
             <div className="lever">
               <label>Ceiling from the current list</label>
-              <div className="row"><b style={{fontSize: '26px', fontFamily: 'var(--cb-display)', color: ceiling >= CAP ? 'var(--cb-pine)' : 'var(--cb-red)'}}>{ceiling}</b></div>
+              <div className="row"><b style={{fontSize: '26px', fontFamily: 'var(--display)', color: ceiling >= CAP ? 'var(--pine)' : 'var(--red)'}}>{ceiling}</b></div>
               <div className="hint">People in the room if every one of the {LIST} is called and the levers hold.</div>
             </div>
           </div>
@@ -223,13 +298,17 @@ const AdminCommandBoard = () => {
               <div className="bar"><i className={o.pct < 34 && o.tasks.length > 0 ? 'hot' : ''} style={{width: `${o.pct}%`}}></i></div>
               <div className="targetrow" style={{marginTop: '5px'}}>{o.pct}% of tasks completed</div>
               <ul className="tasks">
-                {o.tasks.slice(0, 5).map((t, i) => (
+                {o.tasks.map((t, i) => (
                   <li key={i} className={t.status === 'completed' ? 'done' : ''}>
-                    <input type="checkbox" readOnly checked={t.status === 'completed'} />
-                    <span>{t.title}</span>
+                    <input 
+                      type="checkbox" 
+                      checked={t.status === 'completed'} 
+                      onChange={() => toggleTaskStatus(t.id, t.status)}
+                      className="cursor-pointer"
+                    />
+                    <span className="cursor-pointer" onClick={() => toggleTaskStatus(t.id, t.status)}>{t.title}</span>
                   </li>
                 ))}
-                {o.tasks.length > 5 && <li className="small italic text-gray-500">+{o.tasks.length - 5} more tasks</li>}
               </ul>
             </div>
           ))}
