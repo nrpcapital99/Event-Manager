@@ -17,19 +17,14 @@
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
-/* Base resets for the board */
 .command-board-wrap {
-  background: var(--paper);
   color: var(--ink);
   font-family: var(--body);
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  padding: 24px 18px 80px;
-  border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-  overflow-y: auto;
-  max-height: calc(100vh - 120px);
+  padding: 0;
+  width: 100%;
 }
 
 .command-board-theme h1, 

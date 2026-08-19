@@ -281,7 +281,8 @@ const EmployeeDashboard = () => {
   );
 
   return (
-    <AdminCommandBoard 
+    <div className="w-full min-h-screen p-4 md:p-8">
+      <AdminCommandBoard 
       isEmployeeMode={true} 
       syncEventId={selectedEventId} 
       employeeData={employeeData}
@@ -442,6 +443,7 @@ const EmployeeDashboard = () => {
         </div>
       </div>
     </AdminCommandBoard>
+    </div>
   );
 };
 

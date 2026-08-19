@@ -112,8 +112,8 @@ const AdminDashboard = () => {
       {/* Sidebar Navigation */}
       <div className="glass w-full md:w-64 flex-none flex flex-col justify-between p-4 md:p-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-wider mb-8 text-transparent bg-clip-text bg-gradient-to-r from-primary to-pink-500">
-            NRP EventManager
+          <h2 className="text-2xl font-bold tracking-wider mb-8 text-[var(--ink)] uppercase font-mono border-b-2 border-[var(--ink)] pb-2">
+            Command Board
           </h2>
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => {
@@ -123,12 +123,12 @@ const AdminDashboard = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                    isActive ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' : 'hover:bg-black/5 dark:hover:bg-white/10'
+                  className={`flex items-center gap-3 px-4 py-3 rounded-[2px] transition-all font-mono tracking-wider uppercase text-sm ${
+                    isActive ? 'bg-[var(--ink)] text-[var(--chalk)]' : 'text-[var(--ink)] hover:bg-[var(--rule)]'
                   }`}
                 >
-                  <Icon size={20} />
-                  <span className="font-medium">{item.label}</span>
+                  <Icon size={16} />
+                  <span className="font-bold">{item.label}</span>
                 </Link>
               );
             })}
@@ -138,24 +138,24 @@ const AdminDashboard = () => {
         <div className="flex flex-col gap-2 mt-auto">
           <button 
             onClick={toggleTheme} 
-            className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
+            className="flex items-center gap-3 px-4 py-3 font-mono tracking-wider uppercase text-sm font-bold text-[var(--ink)] hover:bg-[var(--rule)] rounded-[2px] transition-colors"
           >
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            <span className="font-medium">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
           
           <button 
             onClick={handleLogout} 
-            className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+            className="flex items-center gap-3 px-4 py-3 font-mono tracking-wider uppercase text-sm font-bold text-[var(--red)] hover:bg-[#FBF0EE] rounded-[2px] transition-colors"
           >
-            <LogOut size={20} />
-            <span className="font-medium">Logout</span>
+            <LogOut size={16} />
+            <span>Logout</span>
           </button>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="glass flex-1 p-8 overflow-y-auto relative">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto relative">
         <Routes>
           <Route path="/" element={<AdminOverview />} />
           <Route path="/events" element={<AdminEvents />} />
