@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { collection, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { getTaskStyles } from '../../lib/utils';
 import '../admin/AdminCommandBoard.css';
+import AdminCommandBoard from '../admin/AdminCommandBoard';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -213,193 +214,200 @@ const EmployeeDashboard = () => {
     );
   };
 
-  return (
-    <div className="w-full max-w-7xl mx-auto command-board-theme command-board-wrap relative overflow-hidden min-h-[90vh] animate-in fade-in duration-500 !p-6">
-      
-      {/* Tight Header */}
-      <header className="flex justify-between items-end mb-6 pb-4 border-b-2 border-[var(--ink)]">
-        <div>
-          <div className="eyebrow !text-[var(--ink)] mb-1">Employee Workspace / {employeeData.name}</div>
-          <h1 className="text-3xl leading-none m-0 p-0">
-            {events.length === 0 ? 'No Assignments' : (selectedEvent?.name || 'Select an Event')}
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {events.length > 0 && (
-            <select 
-              className="cb-select !text-sm !py-1.5"
-              value={selectedEventId}
-              onChange={(e) => setSelectedEventId(e.target.value)}
-            >
-              {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-            </select>
-          )}
+  if (events.length === 0) {
+    return (
+      <div className="w-full max-w-7xl mx-auto command-board-theme command-board-wrap relative overflow-hidden min-h-[90vh] animate-in fade-in duration-500 !p-6">
+        <header className="flex justify-between items-end mb-6 pb-4 border-b-2 border-[var(--ink)]">
+          <div>
+            <div className="eyebrow !text-[var(--ink)] mb-1">Employee Workspace / {employeeData.name}</div>
+            <h1 className="text-3xl leading-none m-0 p-0">No Assignments</h1>
+          </div>
           <button onClick={handleLogout} className="btn-secondary !border-[var(--red)] !text-[var(--red)] !bg-transparent hover:!bg-[#FBF0EE]">
             Sign Out
           </button>
-        </div>
-      </header>
-      
-      {events.length === 0 ? (
+        </header>
         <div className="glass-panel text-center py-12">
           <h3 className="disp text-xl mb-2">No Events Assigned</h3>
           <p className="text-[var(--soft)] font-mono text-sm">You are currently not assigned to any events. Please contact your administrator.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      </div>
+    );
+  }
+
+  const renderHeaderActions = () => (
+    <div className="flex items-center gap-4">
+      <select 
+        className="cb-select !text-sm !py-1.5"
+        value={selectedEventId}
+        onChange={(e) => setSelectedEventId(e.target.value)}
+      >
+        {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+      </select>
+      <button onClick={handleLogout} className="btn-secondary !border-[var(--red)] !text-[var(--red)] !bg-transparent hover:!bg-[#FBF0EE]">
+        Sign Out
+      </button>
+    </div>
+  );
+
+  return (
+    <AdminCommandBoard 
+      isEmployeeMode={true} 
+      syncEventId={selectedEventId} 
+      employeeData={employeeData}
+      renderHeaderActions={renderHeaderActions}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Main Left Column (8 cols) */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
           
-          {/* Main Left Column (8 cols) */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            
-            {/* Live Gantt Chart Section */}
-            <div className="glass-panel !p-5">
-              <div className="flex justify-between items-end mb-4 border-b border-[var(--rule)] pb-2">
-                <h2 className="disp text-lg text-[var(--pine)] flex items-center gap-2 m-0">
-                  Live Gantt Timeline
-                  <span className="bg-[var(--pine)] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm animate-pulse uppercase tracking-wider">Live</span>
-                </h2>
-              </div>
-              <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-                {renderGanttChart()}
-              </div>
+          {/* Live Gantt Chart Section */}
+          <div className="glass-panel !p-5">
+            <div className="flex justify-between items-end mb-4 border-b border-[var(--rule)] pb-2">
+              <h2 className="disp text-lg text-[var(--pine)] flex items-center gap-2 m-0">
+                Live Gantt Timeline
+                <span className="bg-[var(--pine)] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm animate-pulse uppercase tracking-wider">Live</span>
+              </h2>
             </div>
-
-            {/* Tasks Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* My Tasks */}
-              <div className="glass-panel !p-5 !border-t-2 !border-t-[var(--plum)]">
-                <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2">My Tasks</h3>
-                {myTasks.length === 0 ? (
-                  <p className="text-[var(--soft)] font-mono text-xs">You have no tasks for this event.</p>
-                ) : (
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                    {myTasks.map(task => {
-                      const styles = getTaskStyles(task);
-                      const iHaveCompleted = task.completedBy?.includes(employeeData.id);
-                      
-                      return (
-                      <div key={task.id} className={`p-3 border rounded-[3px] transition-all ${task.status === 'completed' ? 'bg-[#EDF2EE] border-[var(--pine-lt)]' : 'bg-white border-[var(--rule)]'}`}>
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-bold text-sm block leading-tight">{task.title}</span>
-                          <span className={`${styles.badge} px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-mono`}>
-                            {styles.label}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[var(--soft)] mb-2 leading-snug">{task.description}</p>
-                        
-                        <textarea 
-                          className="w-full text-xs p-2 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] min-h-[45px] mb-2 font-mono text-[var(--ink)] resize-none"
-                          placeholder="Updates / issues..."
-                          value={remarksDrafts[task.id] !== undefined ? remarksDrafts[task.id] : (task.remarks || '')}
-                          onChange={(e) => setRemarksDrafts(prev => ({...prev, [task.id]: e.target.value}))}
-                          onBlur={() => handleSaveRemark(task.id, task.remarks || '')}
-                        />
-                        
-                        <div className="flex items-center justify-between border-t border-[var(--rule)] pt-2 mt-1">
-                          <span className="font-mono text-[10px] text-[var(--soft)]">
-                            Due: {new Date(task.dueDate).toLocaleDateString()}
-                          </span>
-                          <button 
-                            onClick={() => handleToggleTaskStatus(task)}
-                            className={`text-[10px] px-2 py-1 rounded-[2px] font-mono uppercase tracking-wider transition-all ${iHaveCompleted ? 'bg-[var(--rule)] text-[var(--ink)] hover:bg-[var(--soft)] hover:text-white' : 'bg-[var(--plum)] text-white hover:bg-[var(--plum-lt)]'}`}
-                          >
-                            {iHaveCompleted ? 'Undo' : 'Complete'}
-                          </button>
-                        </div>
-                      </div>
-                    )})}
-                  </div>
-                )}
-              </div>
-
-              {/* Team Tasks */}
-              <div className="glass-panel !p-5">
-                <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2 text-[var(--soft)]">Team Tasks</h3>
-                {otherTasks.length === 0 ? (
-                  <p className="text-[var(--soft)] font-mono text-xs">No other tasks assigned to the team.</p>
-                ) : (
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                    {otherTasks.map(task => {
-                      const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
-                      return (
-                        <div key={task.id} className="p-2 border border-[var(--rule)] rounded-[2px] bg-white text-sm">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium truncate pr-2">{task.title}</span>
-                          </div>
-                          <div className="font-mono text-[9px] text-[var(--soft)] mb-1.5">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
-                          
-                          <div className="flex flex-wrap gap-1">
-                            {assignedEmps.length > 0 ? assignedEmps.map(emp => (
-                              <span key={emp.id} className="font-mono text-[9px] bg-[var(--paper)] px-1.5 py-0.5 rounded-[2px] text-[var(--ink)] border border-[var(--rule)]">
-                                {emp.name}
-                              </span>
-                            )) : (
-                              <span className="font-mono text-[9px] italic text-[var(--soft)]">Unassigned</span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+            <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+              {renderGanttChart()}
             </div>
           </div>
 
-          {/* Right Column (4 cols) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
+          {/* Tasks Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Event Expenses */}
-            <div className="glass-panel !p-5 !border-l-4 !border-l-[var(--pine)] h-full">
-              <h3 className="disp text-lg mb-2">Expenses</h3>
-              <p className="text-[var(--soft)] text-xs mb-4">Submit expenses for admin review.</p>
-              
-              <div className="flex flex-col gap-2 mb-6">
-                <input 
-                  type="text" 
-                  placeholder="Description (e.g. Uber)" 
-                  className="glass-input !text-sm !p-2" 
-                  value={newExpense.description} 
-                  onChange={e => setNewExpense({...newExpense, description: e.target.value})} 
-                />
-                <div className="flex gap-2">
-                  <input 
-                    type="number" 
-                    placeholder="₹ Amount" 
-                    className="glass-input !text-sm !p-2 flex-1" 
-                    value={newExpense.amount} 
-                    onChange={e => setNewExpense({...newExpense, amount: e.target.value})} 
-                  />
-                  <button onClick={handleAddExpense} className="btn-primary !bg-[var(--pine)] !text-[11px] !px-3">Submit</button>
-                </div>
-              </div>
-              
-              <h4 className="font-mono text-[10px] uppercase tracking-wider text-[var(--soft)] mb-2 border-b border-[var(--rule)] pb-1">Your Logged Expenses</h4>
-              {(selectedEvent?.expenses || []).filter((exp: any) => exp.addedBy === employeeData.name).length === 0 ? (
-                <p className="text-[var(--soft)] font-mono text-[10px] italic">No expenses logged.</p>
+            {/* My Tasks */}
+            <div className="glass-panel !p-5 !border-t-2 !border-t-[var(--plum)]">
+              <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2">My Tasks</h3>
+              {myTasks.length === 0 ? (
+                <p className="text-[var(--soft)] font-mono text-xs">You have no tasks for this event.</p>
               ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                  {(selectedEvent?.expenses || [])
-                    .filter((exp: any) => exp.addedBy === employeeData.name)
-                    .map((exp: any) => (
-                    <div key={exp.id} className="flex justify-between items-center text-sm border-b border-[var(--rule)] pb-1">
-                      <div>
-                        <div className="font-medium text-xs leading-tight">{exp.description}</div>
-                        <div className="font-mono text-[9px] text-[var(--soft)]">{new Date(exp.date).toLocaleDateString()}</div>
+                <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                  {myTasks.map(task => {
+                    const styles = getTaskStyles(task);
+                    const iHaveCompleted = task.completedBy?.includes(employeeData.id);
+                    
+                    return (
+                    <div key={task.id} className={`p-3 border rounded-[3px] transition-all ${task.status === 'completed' ? 'bg-[#EDF2EE] border-[var(--pine-lt)]' : 'bg-white border-[var(--rule)]'}`}>
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-sm block leading-tight">{task.title}</span>
+                        <span className={`${styles.badge} px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-mono`}>
+                          {styles.label}
+                        </span>
                       </div>
-                      <div className="font-mono font-bold text-[var(--pine)] text-sm">₹{exp.amount.toFixed(0)}</div>
+                      <p className="text-xs text-[var(--soft)] mb-2 leading-snug">{task.description}</p>
+                      
+                      <textarea 
+                        className="w-full text-xs p-2 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] min-h-[45px] mb-2 font-mono text-[var(--ink)] resize-none"
+                        placeholder="Updates / issues..."
+                        value={remarksDrafts[task.id] !== undefined ? remarksDrafts[task.id] : (task.remarks || '')}
+                        onChange={(e) => setRemarksDrafts(prev => ({...prev, [task.id]: e.target.value}))}
+                        onBlur={() => handleSaveRemark(task.id, task.remarks || '')}
+                      />
+                      
+                      <div className="flex items-center justify-between border-t border-[var(--rule)] pt-2 mt-1">
+                        <span className="font-mono text-[10px] text-[var(--soft)]">
+                          Due: {new Date(task.dueDate).toLocaleDateString()}
+                        </span>
+                        <button 
+                          onClick={() => handleToggleTaskStatus(task)}
+                          className={`text-[10px] px-2 py-1 rounded-[2px] font-mono uppercase tracking-wider transition-all ${iHaveCompleted ? 'bg-[var(--rule)] text-[var(--ink)] hover:bg-[var(--soft)] hover:text-white' : 'bg-[var(--plum)] text-white hover:bg-[var(--plum-lt)]'}`}
+                        >
+                          {iHaveCompleted ? 'Undo' : 'Complete'}
+                        </button>
+                      </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>
-            
+
+            {/* Team Tasks */}
+            <div className="glass-panel !p-5">
+              <h3 className="disp text-lg mb-4 border-b border-[var(--rule)] pb-2 text-[var(--soft)]">Team Tasks</h3>
+              {otherTasks.length === 0 ? (
+                <p className="text-[var(--soft)] font-mono text-xs">No other tasks assigned to the team.</p>
+              ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                  {otherTasks.map(task => {
+                    const assignedEmps = employees.filter(emp => task.employeeIds?.includes(emp.id));
+                    return (
+                      <div key={task.id} className="p-2 border border-[var(--rule)] rounded-[2px] bg-white text-sm">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium truncate pr-2">{task.title}</span>
+                        </div>
+                        <div className="font-mono text-[9px] text-[var(--soft)] mb-1.5">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
+                        
+                        <div className="flex flex-wrap gap-1">
+                          {assignedEmps.length > 0 ? assignedEmps.map(emp => (
+                            <span key={emp.id} className="font-mono text-[9px] bg-[var(--paper)] px-1.5 py-0.5 rounded-[2px] text-[var(--ink)] border border-[var(--rule)]">
+                              {emp.name}
+                            </span>
+                          )) : (
+                            <span className="font-mono text-[9px] italic text-[var(--soft)]">Unassigned</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Right Column (4 cols) */}
+        <div className="lg:col-span-4 flex flex-col gap-6">
+          
+          {/* Event Expenses */}
+          <div className="glass-panel !p-5 !border-l-4 !border-l-[var(--pine)] h-full">
+            <h3 className="disp text-lg mb-2">Expenses</h3>
+            <p className="text-[var(--soft)] text-xs mb-4">Submit expenses for admin review.</p>
+            
+            <div className="flex flex-col gap-2 mb-6">
+              <input 
+                type="text" 
+                placeholder="Description (e.g. Uber)" 
+                className="glass-input !text-sm !p-2" 
+                value={newExpense.description} 
+                onChange={e => setNewExpense({...newExpense, description: e.target.value})} 
+              />
+              <div className="flex gap-2">
+                <input 
+                  type="number" 
+                  placeholder="₹ Amount" 
+                  className="glass-input !text-sm !p-2 flex-1" 
+                  value={newExpense.amount} 
+                  onChange={e => setNewExpense({...newExpense, amount: e.target.value})} 
+                />
+                <button onClick={handleAddExpense} className="btn-primary !bg-[var(--pine)] !text-[11px] !px-3">Submit</button>
+              </div>
+            </div>
+            
+            <h4 className="font-mono text-[10px] uppercase tracking-wider text-[var(--soft)] mb-2 border-b border-[var(--rule)] pb-1">Your Logged Expenses</h4>
+            {(selectedEvent?.expenses || []).filter((exp: any) => exp.addedBy === employeeData.name).length === 0 ? (
+              <p className="text-[var(--soft)] font-mono text-[10px] italic">No expenses logged.</p>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                {(selectedEvent?.expenses || [])
+                  .filter((exp: any) => exp.addedBy === employeeData.name)
+                  .map((exp: any) => (
+                  <div key={exp.id} className="flex justify-between items-center text-sm border-b border-[var(--rule)] pb-1">
+                    <div>
+                      <div className="font-medium text-xs leading-tight">{exp.description}</div>
+                      <div className="font-mono text-[9px] text-[var(--soft)]">{new Date(exp.date).toLocaleDateString()}</div>
+                    </div>
+                    <div className="font-mono font-bold text-[var(--pine)] text-sm">₹{exp.amount.toFixed(0)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+        </div>
+      </div>
+    </AdminCommandBoard>
   );
 };
 

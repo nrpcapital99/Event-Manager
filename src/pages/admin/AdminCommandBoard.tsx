@@ -1,11 +1,29 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
 import './AdminCommandBoard.css';
 
-const AdminCommandBoard = () => {
+const AdminCommandBoard = ({ 
+  isEmployeeMode = false, 
+  employeeData = null,
+  syncEventId = null,
+  renderHeaderActions,
+  children
+}: { 
+  isEmployeeMode?: boolean, 
+  employeeData?: any,
+  syncEventId?: string | null,
+  renderHeaderActions?: () => React.ReactNode,
+  children?: React.ReactNode
+}) => {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+  
+  useEffect(() => {
+    if (syncEventId) {
+      setSelectedEventId(syncEventId);
+    }
+  }, [syncEventId]);
   
   // Levers
   const [yesRate, setYesRate] = useState(65);
@@ -27,7 +45,12 @@ const AdminCommandBoard = () => {
       const eventsSnap = await getDocs(collection(db, 'events'));
       const evs = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setEvents(evs);
-      if (evs.length > 0 && !selectedEventId) {
+      
+      // If employee mode, auto-select their first event if any
+      if (isEmployeeMode && employeeData && !selectedEventId) {
+        const myEvs = evs.filter((e: any) => e.employeeIds?.includes(employeeData.id));
+        if (myEvs.length > 0) setSelectedEventId(myEvs[0].id);
+      } else if (evs.length > 0 && !selectedEventId) {
         setSelectedEventId(evs[0].id);
       }
 
@@ -46,15 +69,35 @@ const AdminCommandBoard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isEmployeeMode, employeeData]);
 
   const toggleTaskStatus = async (taskId: string, currentStatus: string) => {
+    if (isEmployeeMode) return; // Employees should use their dashboard to toggle tasks for tracking 'completedBy'
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     try {
       await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
       setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
     } catch (err) {
       console.error("Error updating task", err);
+    }
+  };
+
+  const quickAddTask = async (title: string, employeeId: string) => {
+    if (!selectedEventId || isEmployeeMode) return;
+    try {
+      const newTask = {
+        title,
+        eventId: selectedEventId,
+        employeeIds: [employeeId],
+        status: 'pending',
+        category: 'General',
+        dueDate: new Date().toISOString().split('T')[0],
+        createdAt: new Date()
+      };
+      const docRef = await addDoc(collection(db, 'tasks'), newTask);
+      setTasks([...tasks, { id: docRef.id, ...newTask }]);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -125,8 +168,10 @@ const AdminCommandBoard = () => {
           className={`seat ${cssClass}`}
           title={occupant ? `Seat ${i}: ${occupant.name}` : `Seat ${i} (Available)`}
           onClick={() => {
-            setSelectedSeat(i);
-            setShowSeatModal(true);
+            if (!isEmployeeMode) {
+              setSelectedSeat(i);
+              setShowSeatModal(true);
+            }
           }}
         ></div>
       );
@@ -181,37 +226,44 @@ const AdminCommandBoard = () => {
         </div>
       )}
 
-      <div className="mb-6 flex items-center justify-between">
-        <div className="eyebrow !text-[var(--ink)] font-bold text-lg">Event Selection</div>
-        <select 
-          className="cb-select"
-          value={selectedEventId}
-          onChange={e => setSelectedEventId(e.target.value)}
-        >
-          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-        </select>
-      </div>
+      {!isEmployeeMode && (
+        <div className="mb-6 flex items-center justify-between">
+          <div className="eyebrow !text-[var(--ink)] font-bold text-lg">Event Selection</div>
+          <select 
+            className="cb-select"
+            value={selectedEventId}
+            onChange={e => setSelectedEventId(e.target.value)}
+          >
+            {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+          </select>
+        </div>
+      )}
 
       <header>
         <div className="hrow">
           <div>
-            <div className="eyebrow">NRP Capitals &nbsp;/&nbsp; flagship event &nbsp;/&nbsp; chairman command board</div>
+            <div className="eyebrow">NRP Capitals &nbsp;/&nbsp; flagship event &nbsp;/&nbsp; {isEmployeeMode ? `employee workspace: ${employeeData?.name}` : 'chairman command board'}</div>
             <h1>{selectedEvent?.name || 'Select an Event'}</h1>
             <div className="when">
               {selectedEvent?.eventDate ? selectedEvent.eventDate.toDate().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase() : 'NO DATE'} 
               &nbsp;/&nbsp; CAPACITY {CAP}
             </div>
           </div>
-          <div className="clock">
-            <div className="num">{tminusText}</div>
-            <div className="lab">{tlabText}</div>
+          <div className="flex items-center gap-6">
+            <div className="clock">
+              <div className="num">{tminusText}</div>
+              <div className="lab">{tlabText}</div>
+            </div>
+            {renderHeaderActions && renderHeaderActions()}
           </div>
         </div>
       </header>
 
-      <div className="rule-box">
-        <b>Operating rule.</b> The database contains names, numbers, and private RSVP notes. This board is the war room screen: counts, owners and decisions only. Nothing on this screen identifies a client or carries a portfolio value, making it safe for the team group.
-      </div>
+      {!isEmployeeMode && (
+        <div className="rule-box">
+          <b>Operating rule.</b> The database contains names, numbers, and private RSVP notes. This board is the war room screen: counts, owners and decisions only. Nothing on this screen identifies a client or carries a portfolio value, making it safe for the team group.
+        </div>
+      )}
 
       <section>
         <div className="shead">
@@ -227,10 +279,12 @@ const AdminCommandBoard = () => {
               <div className={`stat ${expected >= CAP ? 'good' : 'bad'}`}><div className="v mono">{expected}</div><div className="k">Expected in room</div></div>
               <div className="stat gap"><div className="v mono">{gap}</div><div className="k">Gap to {CAP}</div></div>
             </div>
-            <div className="rates">
-              <label>Firm yes shows up <input type="range" min="45" max="95" step="5" value={yesRate} onChange={e => setYesRate(Number(e.target.value))} /><b>{yesRate}%</b></label>
-              <label>Likely shows up <input type="range" min="10" max="60" step="5" value={likelyRate} onChange={e => setLikelyRate(Number(e.target.value))} /><b>{likelyRate}%</b></label>
-            </div>
+            {!isEmployeeMode && (
+              <div className="rates">
+                <label>Firm yes shows up <input type="range" min="45" max="95" step="5" value={yesRate} onChange={e => setYesRate(Number(e.target.value))} /><b>{yesRate}%</b></label>
+                <label>Likely shows up <input type="range" min="10" max="60" step="5" value={likelyRate} onChange={e => setLikelyRate(Number(e.target.value))} /><b>{likelyRate}%</b></label>
+              </div>
+            )}
           </div>
           <div className="seat-grid">{renderRoomGrid()}</div>
           <div className="legend">
@@ -246,75 +300,99 @@ const AdminCommandBoard = () => {
         </div>
       </section>
 
-      <section>
-        <div className="shead">
-          <h2>Can {LIST} names even fill {CAP} chairs</h2>
-          <span className="note">the question nobody asked before the target was set</span>
-        </div>
-        <div className="panel">
-          <div className="levers">
-            <div className="lever">
-              <label>Yes rate on a personal call</label>
-              <div className="row"><input type="range" min="20" max="70" step="5" value={callYes} onChange={e => setCallYes(Number(e.target.value))} /><b>{callYes}%</b></div>
-              <div className="hint">Warm client, voice call, 35 to 45. A broadcast message, roughly half that.</div>
-            </div>
-            <div className="lever">
-              <label>Seats per family that says yes</label>
-              <div className="row"><input type="range" min="1" max="3" step="0.2" value={party} onChange={e => setParty(Number(e.target.value))} /><b>{party}</b></div>
-              <div className="hint">Your cheapest lever. Moving this from 1.8 to 2.4 is worth about 115 extra names, and it costs one sentence in the script.</div>
-            </div>
-            <div className="lever">
-              <label>Ceiling from the current list</label>
-              <div className="row"><b style={{fontSize: '26px', fontFamily: 'var(--display)', color: ceiling >= CAP ? 'var(--pine)' : 'var(--red)'}}>{ceiling}</b></div>
-              <div className="hint">People in the room if every one of the {LIST} is called and the levers hold.</div>
-            </div>
+      {!isEmployeeMode && (
+        <section>
+          <div className="shead">
+            <h2>Can {LIST} names even fill {CAP} chairs</h2>
+            <span className="note">the question nobody asked before the target was set</span>
           </div>
-          {ceiling >= CAP ? (
-            <div className="alert ok">At these levers the {LIST} names can produce {ceiling} people. It works, but only if every name is actually called.</div>
-          ) : (
-            <div className="alert short">
-              At these levers {LIST} names produce {ceiling} people in the room, not {CAP}.<br/>
-              {CAP} needs roughly {needSeats} confirmed seats, which needs about {needNames} names on the list.
-              You are short by roughly {shortNames} names.<br/>
-              Three ways out and you need at least two: add names this week, lift seats per family by asking for the spouse and children by name, or accept a room of {ceiling} and make it a good one.
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section>
-        <div className="shead">
-          <h2>Task Completion by Team</h2>
-          <span className="note">Live task metrics for this event</span>
-        </div>
-        <div className="cards">
-          {owners.map(o => (
-            <div key={o.id} className="cb-card">
-              <div className="who"><div className="nm">{o.name}</div><div className="eyebrow">{o.role}</div></div>
-              <div className="metrics">
-                <div className="metric"><div className="lab">Assigned</div><div className="cb-select">{o.tasks.length}</div></div>
-                <div className="metric"><div className="lab">Done</div><div className="cb-select">{o.doneTasks.length}</div></div>
+          <div className="panel">
+            <div className="levers">
+              <div className="lever">
+                <label>Yes rate on a personal call</label>
+                <div className="row"><input type="range" min="20" max="70" step="5" value={callYes} onChange={e => setCallYes(Number(e.target.value))} /><b>{callYes}%</b></div>
+                <div className="hint">Warm client, voice call, 35 to 45. A broadcast message, roughly half that.</div>
               </div>
-              <div className="bar"><i className={o.pct < 34 && o.tasks.length > 0 ? 'hot' : ''} style={{width: `${o.pct}%`}}></i></div>
-              <div className="targetrow" style={{marginTop: '5px'}}>{o.pct}% of tasks completed</div>
-              <ul className="tasks">
-                {o.tasks.map((t, i) => (
-                  <li key={i} className={t.status === 'completed' ? 'done' : ''}>
-                    <input 
-                      type="checkbox" 
-                      checked={t.status === 'completed'} 
-                      onChange={() => toggleTaskStatus(t.id, t.status)}
-                      className="cursor-pointer"
-                    />
-                    <span className="cursor-pointer" onClick={() => toggleTaskStatus(t.id, t.status)}>{t.title}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="lever">
+                <label>Seats per family that says yes</label>
+                <div className="row"><input type="range" min="1" max="3" step="0.2" value={party} onChange={e => setParty(Number(e.target.value))} /><b>{party}</b></div>
+                <div className="hint">Your cheapest lever. Moving this from 1.8 to 2.4 is worth about 115 extra names, and it costs one sentence in the script.</div>
+              </div>
+              <div className="lever">
+                <label>Ceiling from the current list</label>
+                <div className="row"><b style={{fontSize: '26px', fontFamily: 'var(--display)', color: ceiling >= CAP ? 'var(--pine)' : 'var(--red)'}}>{ceiling}</b></div>
+                <div className="hint">People in the room if every one of the {LIST} is called and the levers hold.</div>
+              </div>
             </div>
-          ))}
-          {owners.length === 0 && <div className="text-sm opacity-50 p-4 italic">No team members assigned to this event yet.</div>}
-        </div>
-      </section>
+            {ceiling >= CAP ? (
+              <div className="alert ok">At these levers the {LIST} names can produce {ceiling} people. It works, but only if every name is actually called.</div>
+            ) : (
+              <div className="alert short">
+                At these levers {LIST} names produce {ceiling} people in the room, not {CAP}.<br/>
+                {CAP} needs roughly {needSeats} confirmed seats, which needs about {needNames} names on the list.
+                You are short by roughly {shortNames} names.<br/>
+                Three ways out and you need at least two: add names this week, lift seats per family by asking for the spouse and children by name, or accept a room of {ceiling} and make it a good one.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {isEmployeeMode && children ? (
+        <section>
+          {children}
+        </section>
+      ) : (
+        <section>
+          <div className="shead">
+            <h2>Task Completion by Team</h2>
+            <span className="note">Live task metrics for this event</span>
+          </div>
+          <div className="cards">
+            {owners.map(o => (
+              <div key={o.id} className="cb-card">
+                <div className="who"><div className="nm">{o.name}</div><div className="eyebrow">{o.role}</div></div>
+                <div className="metrics">
+                  <div className="metric"><div className="lab">Assigned</div><div className="cb-select">{o.tasks.length}</div></div>
+                  <div className="metric"><div className="lab">Done</div><div className="cb-select">{o.doneTasks.length}</div></div>
+                </div>
+                <div className="bar"><i className={o.pct < 34 && o.tasks.length > 0 ? 'hot' : ''} style={{width: `${o.pct}%`}}></i></div>
+                <div className="targetrow" style={{marginTop: '5px'}}>{o.pct}% of tasks completed</div>
+                <ul className="tasks">
+                  {o.tasks.map((t, i) => (
+                    <li key={i} className={t.status === 'completed' ? 'done' : ''}>
+                      <input 
+                        type="checkbox" 
+                        checked={t.status === 'completed'} 
+                        onChange={() => toggleTaskStatus(t.id, t.status)}
+                        className="cursor-pointer"
+                        disabled={isEmployeeMode}
+                      />
+                      <span className="cursor-pointer" onClick={() => toggleTaskStatus(t.id, t.status)}>{t.title}</span>
+                    </li>
+                  ))}
+                </ul>
+                {!isEmployeeMode && (
+                  <div className="mt-3 border-t border-[var(--rule)] pt-2">
+                    <input 
+                      type="text" 
+                      placeholder={`Assign to ${o.name}... (Press Enter)`} 
+                      className="cb-select w-full"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                          quickAddTask(e.currentTarget.value.trim(), o.id);
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+            {owners.length === 0 && <div className="text-sm opacity-50 p-4 italic">No team members assigned to this event yet.</div>}
+          </div>
+        </section>
+      )}
 
     </div>
   );
