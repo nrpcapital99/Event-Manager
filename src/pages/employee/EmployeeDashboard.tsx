@@ -240,13 +240,13 @@ const EmployeeDashboard = () => {
       <div className="flex bg-[var(--rule)] rounded-[3px] p-0.5">
         <button 
           onClick={() => setViewMode('command-board')}
-          className={`px-3 py-1 text-[11px] font-mono uppercase tracking-wider rounded-[2px] transition-colors ${viewMode === 'command-board' ? 'bg-[var(--chalk)] shadow-sm' : 'text-[var(--soft)] hover:text-[var(--ink)]'}`}
+          className={`px-3 py-1 text-xs md:text-[11px] font-mono uppercase tracking-wider rounded-[2px] transition-colors ${viewMode === 'command-board' ? 'bg-[var(--chalk)] shadow-sm' : 'text-[var(--soft)] hover:text-[var(--ink)]'}`}
         >
           Command Board
         </button>
         <button 
           onClick={() => setViewMode('deadlines')}
-          className={`px-3 py-1 text-[11px] font-mono uppercase tracking-wider rounded-[2px] transition-colors ${viewMode === 'deadlines' ? 'bg-[var(--chalk)] shadow-sm' : 'text-[var(--soft)] hover:text-[var(--ink)]'}`}
+          className={`px-3 py-1 text-xs md:text-[11px] font-mono uppercase tracking-wider rounded-[2px] transition-colors ${viewMode === 'deadlines' ? 'bg-[var(--chalk)] shadow-sm' : 'text-[var(--soft)] hover:text-[var(--ink)]'}`}
         >
           Deadlines
         </button>
@@ -324,7 +324,7 @@ const EmployeeDashboard = () => {
                       <div key={task.id} className={`p-3 border rounded-[3px] transition-all ${task.status === 'completed' ? 'bg-[#EDF2EE] border-[var(--pine-lt)]' : 'bg-[var(--chalk)] border-[var(--rule)]'}`}>
                         <div className="flex justify-between items-start mb-1">
                           <span className="font-bold text-sm block leading-tight">{task.title}</span>
-                          <span className={`${styles.badge} px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-mono`}>
+                          <span className={`${styles.badge} px-2 py-1 rounded-[3px] text-[10px] md:text-[9px] uppercase tracking-wider font-mono`}>
                             {styles.label}
                           </span>
                         </div>
@@ -369,15 +369,15 @@ const EmployeeDashboard = () => {
                           <div className="flex justify-between items-center mb-1">
                             <span className="font-medium truncate pr-2">{task.title}</span>
                           </div>
-                          <div className="font-mono text-[9px] text-[var(--soft)] mb-1.5">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
+                          <div className="font-mono text-[11px] md:text-[9px] text-[var(--soft)] mb-1.5">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
                           
                           <div className="flex flex-wrap gap-1">
                             {assignedEmps.length > 0 ? assignedEmps.map(emp => (
-                              <span key={emp.id} className="font-mono text-[9px] bg-[var(--paper)] px-1.5 py-0.5 rounded-[2px] text-[var(--ink)] border border-[var(--rule)]">
+                              <span key={emp.id} className="font-mono text-[11px] md:text-[9px] bg-[var(--paper)] px-1.5 py-0.5 rounded-[2px] text-[var(--ink)] border border-[var(--rule)]">
                                 {emp.name}
                               </span>
                             )) : (
-                              <span className="font-mono text-[9px] italic text-[var(--soft)]">Unassigned</span>
+                              <span className="font-mono text-[11px] md:text-[9px] italic text-[var(--soft)]">Unassigned</span>
                             )}
                           </div>
                         </div>
