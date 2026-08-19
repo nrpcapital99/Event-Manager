@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, writeBatch } from 'firebase/firestore';
+import { groupEvents } from '../../lib/utils';
 
 const AdminResponsibilities = () => {
   const [responsibilities, setResponsibilities] = useState<any[]>([]);
@@ -119,7 +120,23 @@ const AdminResponsibilities = () => {
           onChange={(e) => setFilterEvent(e.target.value)}
         >
           <option value="" className="bg-white dark:bg-slate-900 text-black dark:text-white">All Events</option>
-          {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
+          {(() => {
+            const { upcoming, past } = groupEvents(events);
+            return (
+              <>
+                {upcoming.length > 0 && (
+                  <optgroup label="Upcoming Events">
+                    {upcoming.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                  </optgroup>
+                )}
+                {past.length > 0 && (
+                  <optgroup label="Past Events">
+                    {past.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                  </optgroup>
+                )}
+              </>
+            );
+          })()}
         </select>
 
         <select 
@@ -205,7 +222,23 @@ const AdminResponsibilities = () => {
             <form onSubmit={handleSave} className="space-y-4">
               <select required className="glass-input appearance-none bg-white dark:bg-black/20" value={newResp.eventId} onChange={e => setNewResp({...newResp, eventId: e.target.value})}>
                 <option value="" disabled className="bg-white dark:bg-slate-900 text-black dark:text-white">1. Select Event</option>
-                {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
+                {(() => {
+                  const { upcoming, past } = groupEvents(events);
+                  return (
+                    <>
+                      {upcoming.length > 0 && (
+                        <optgroup label="Upcoming Events">
+                          {upcoming.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                        </optgroup>
+                      )}
+                      {past.length > 0 && (
+                        <optgroup label="Past Events">
+                          {past.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                        </optgroup>
+                      )}
+                    </>
+                  );
+                })()}
               </select>
 
               <select required className="glass-input appearance-none bg-white dark:bg-black/20" value={newResp.employeeId} onChange={e => setNewResp({...newResp, employeeId: e.target.value})}>

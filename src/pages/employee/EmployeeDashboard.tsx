@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut } from 'firebase/auth';
 import { collection, onSnapshot, updateDoc, doc } from 'firebase/firestore';
-import { getTaskStyles } from '../../lib/utils';
+import { getTaskStyles, groupEvents } from '../../lib/utils';
 import '../admin/AdminCommandBoard.css';
 import AdminCommandBoard from '../admin/AdminCommandBoard';
 
@@ -256,7 +256,23 @@ const EmployeeDashboard = () => {
         value={selectedEventId}
         onChange={(e) => setSelectedEventId(e.target.value)}
       >
-        {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+        {(() => {
+          const { upcoming, past } = groupEvents(events);
+          return (
+            <>
+              {upcoming.length > 0 && (
+                <optgroup label="Upcoming Events">
+                  {upcoming.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </optgroup>
+              )}
+              {past.length > 0 && (
+                <optgroup label="Past Events">
+                  {past.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </optgroup>
+              )}
+            </>
+          );
+        })()}
       </select>
       <button onClick={handleLogout} className="btn-secondary !border-[var(--red)] !text-[var(--red)] !bg-transparent hover:!bg-[#FBF0EE]">
         Sign Out

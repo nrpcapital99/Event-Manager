@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
+import { groupEvents } from '../../lib/utils';
 import './AdminCommandBoard.css';
 
 interface AdminCommandBoardProps {
@@ -270,7 +271,23 @@ const AdminCommandBoard = ({
             value={selectedEventId}
             onChange={e => setSelectedEventId(e.target.value)}
           >
-            {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+            {(() => {
+              const { upcoming, past } = groupEvents(events);
+              return (
+                <>
+                  {upcoming.length > 0 && (
+                    <optgroup label="Upcoming Events">
+                      {upcoming.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                    </optgroup>
+                  )}
+                  {past.length > 0 && (
+                    <optgroup label="Past Events">
+                      {past.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                    </optgroup>
+                  )}
+                </>
+              );
+            })()}
           </select>
         </div>
       )}

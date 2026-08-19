@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { groupEvents } from '../../lib/utils';
 
 const AdminEmployees = () => {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -153,21 +154,43 @@ const AdminEmployees = () => {
                 </h4>
                 <div className="bg-black/5 dark:bg-white/5 p-4 rounded-lg space-y-1">
                   {events.length === 0 && <p className="text-sm opacity-50">No events exist.</p>}
-                  {events.map(ev => {
-                    const isAssigned = ev.employeeIds?.includes(showEmployeeModal.id);
+                  {(() => {
+                    const { upcoming, past } = groupEvents(events);
                     return (
-                      <label key={ev.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors">
-                        <input 
-                          type="checkbox" 
-                          className="accent-primary w-4 h-4"
-                          checked={isAssigned}
-                          onChange={() => toggleEventAssignment(showEmployeeModal.id, ev.id)}
-                        />
-                        <span className="font-medium">{ev.name}</span>
-                        <span className="text-xs opacity-50 ml-auto">{ev.eventDate?.toDate().toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
-                      </label>
+                      <>
+                        {upcoming.length > 0 && (
+                          <div className="mb-4">
+                            <div className="text-xs font-bold uppercase opacity-50 mb-2">Upcoming</div>
+                            {upcoming.map(ev => {
+                              const isAssigned = ev.employeeIds?.includes(showEmployeeModal.id);
+                              return (
+                                <label key={ev.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors">
+                                  <input type="checkbox" className="accent-primary w-4 h-4" checked={isAssigned} onChange={() => toggleEventAssignment(showEmployeeModal.id, ev.id)} />
+                                  <span className="font-medium">{ev.name}</span>
+                                  <span className="text-xs opacity-50 ml-auto">{ev.eventDate?.toDate().toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {past.length > 0 && (
+                          <div>
+                            <div className="text-xs font-bold uppercase opacity-50 mb-2">Past</div>
+                            {past.map(ev => {
+                              const isAssigned = ev.employeeIds?.includes(showEmployeeModal.id);
+                              return (
+                                <label key={ev.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors">
+                                  <input type="checkbox" className="accent-primary w-4 h-4" checked={isAssigned} onChange={() => toggleEventAssignment(showEmployeeModal.id, ev.id)} />
+                                  <span className="font-medium">{ev.name}</span>
+                                  <span className="text-xs opacity-50 ml-auto">{ev.eventDate?.toDate().toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
 

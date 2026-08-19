@@ -70,3 +70,39 @@ export function getTaskStyles(task: any) {
       };
   }
 }
+
+export function groupEvents(events: any[]) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  const upcoming: any[] = [];
+  const past: any[] = [];
+
+  events.forEach(ev => {
+    if (!ev.eventDate) {
+      upcoming.push(ev);
+    } else {
+      const d = ev.eventDate.toDate ? ev.eventDate.toDate() : new Date(ev.eventDate);
+      if (d < now) {
+        past.push(ev);
+      } else {
+        upcoming.push(ev);
+      }
+    }
+  });
+
+  // Sort upcoming ascending, past descending
+  upcoming.sort((a, b) => {
+    const da = a.eventDate ? (a.eventDate.toDate ? a.eventDate.toDate().getTime() : new Date(a.eventDate).getTime()) : Number.MAX_SAFE_INTEGER;
+    const db = b.eventDate ? (b.eventDate.toDate ? b.eventDate.toDate().getTime() : new Date(b.eventDate).getTime()) : Number.MAX_SAFE_INTEGER;
+    return da - db;
+  });
+  
+  past.sort((a, b) => {
+    const da = a.eventDate ? (a.eventDate.toDate ? a.eventDate.toDate().getTime() : new Date(a.eventDate).getTime()) : 0;
+    const db = b.eventDate ? (b.eventDate.toDate ? b.eventDate.toDate().getTime() : new Date(b.eventDate).getTime()) : 0;
+    return db - da; // Descending for past
+  });
+
+  return { upcoming, past };
+}

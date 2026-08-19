@@ -3,6 +3,7 @@ import { db } from '../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import EventInvitesManager from '../../components/EventInvitesManager';
 import { Calendar, Users } from 'lucide-react';
+import { groupEvents } from '../../lib/utils';
 
 const AdminAttendees = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -38,26 +39,54 @@ const AdminAttendees = () => {
       </div>
 
       {!selectedEventId ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map(event => (
-            <div 
-              key={event.id} 
-              onClick={() => setSelectedEventId(event.id)}
-              className="glass p-6 cursor-pointer hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)] group"
-            >
-              <div className="bg-primary/20 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Calendar className="text-primary" size={24} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">{event.name}</h3>
-              <div className="flex items-center gap-2 text-sm opacity-70 mb-4">
-                <Users size={14} />
-                <span>{(event.invitees || []).length} Invited Clients</span>
-              </div>
-              <button className="text-primary text-sm font-bold w-full text-left">
-                Manage Attendees →
-              </button>
-            </div>
-          ))}
+        <div className="space-y-8">
+          {(() => {
+            const { upcoming, past } = groupEvents(events);
+            return (
+              <>
+                {upcoming.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-bold mb-4 opacity-80 uppercase tracking-wider text-sm">Upcoming Events</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {upcoming.map(event => (
+                        <div key={event.id} onClick={() => setSelectedEventId(event.id)} className="glass p-6 cursor-pointer hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)] group">
+                          <div className="bg-primary/20 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Calendar className="text-primary" size={24} />
+                          </div>
+                          <h3 className="text-xl font-bold mb-2">{event.name}</h3>
+                          <div className="flex items-center gap-2 text-sm opacity-70 mb-4">
+                            <Users size={14} />
+                            <span>{(event.invitees || []).length} Invited Clients</span>
+                          </div>
+                          <button className="text-primary text-sm font-bold w-full text-left">Manage Attendees →</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {past.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-bold mb-4 opacity-80 uppercase tracking-wider text-sm mt-8">Past Events</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
+                      {past.map(event => (
+                        <div key={event.id} onClick={() => setSelectedEventId(event.id)} className="glass p-6 cursor-pointer hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)] group">
+                          <div className="bg-primary/20 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Calendar className="text-primary" size={24} />
+                          </div>
+                          <h3 className="text-xl font-bold mb-2">{event.name}</h3>
+                          <div className="flex items-center gap-2 text-sm opacity-70 mb-4">
+                            <Users size={14} />
+                            <span>{(event.invitees || []).length} Invited Clients</span>
+                          </div>
+                          <button className="text-primary text-sm font-bold w-full text-left">Manage Attendees →</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
           {events.length === 0 && (
             <div className="col-span-full py-12 text-center opacity-50">
               No events found. Create one in the Events tab first!

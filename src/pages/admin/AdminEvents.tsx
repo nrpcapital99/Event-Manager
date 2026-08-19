@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { groupEvents } from '../../lib/utils';
 import EventInvitesManager from '../../components/EventInvitesManager';
 
 const AdminEvents = () => {
@@ -329,29 +330,64 @@ const AdminEvents = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map(event => (
-          <div key={event.id} onClick={() => setSelectedEventId(event.id)} className="glass p-6 hover:shadow-[0_0_20px_rgba(124,58,237,0.2)] transition-all cursor-pointer relative overflow-hidden group">
-            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-            
-            <div className="absolute top-4 right-4 bg-primary text-white font-mono text-sm px-3 py-1 rounded-full shadow-lg font-bold">
-              {getTimeline(event.eventDate)}
-            </div>
-            
-            <h3 className="text-xl font-bold mb-2 pr-24 group-hover:text-primary transition-colors">{event.name}</h3>
-            <p className="opacity-70 mb-4 text-sm line-clamp-2">{event.description}</p>
-            
-            <div className="flex justify-between text-sm opacity-80 border-t border-black/10 dark:border-white/10 pt-4 mt-4">
-              <span className="font-medium">Date:</span>
-              <span>{event.eventDate?.toDate().toLocaleDateString()}</span>
-            </div>
-            
-            <div className="flex justify-between text-sm opacity-80 mt-2">
-              <span className="font-medium">Invites:</span>
-              <span>{(event.invitees || []).length} clients</span>
-            </div>
-          </div>
-        ))}
+      <div className="space-y-8">
+        {(() => {
+          const { upcoming, past } = groupEvents(events);
+          return (
+            <>
+              {upcoming.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4 opacity-80 uppercase tracking-wider text-sm">Upcoming Events</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {upcoming.map(event => (
+                      <div key={event.id} onClick={() => setSelectedEventId(event.id)} className="glass p-6 hover:shadow-[0_0_20px_rgba(124,58,237,0.2)] transition-all cursor-pointer relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        <div className="absolute top-4 right-4 bg-primary text-white font-mono text-sm px-3 py-1 rounded-full shadow-lg font-bold">
+                          {getTimeline(event.eventDate)}
+                        </div>
+                        <h3 className="text-xl font-bold mb-2 pr-24 group-hover:text-primary transition-colors">{event.name}</h3>
+                        <p className="opacity-70 mb-4 text-sm line-clamp-2">{event.description}</p>
+                        <div className="flex justify-between text-sm opacity-80 border-t border-black/10 dark:border-white/10 pt-4 mt-4">
+                          <span className="font-medium">Date:</span>
+                          <span>{event.eventDate?.toDate().toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm opacity-80 mt-2">
+                          <span className="font-medium">Invites:</span>
+                          <span>{(event.invitees || []).length} clients</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {past.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4 opacity-80 uppercase tracking-wider text-sm mt-8">Past Events</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
+                    {past.map(event => (
+                      <div key={event.id} onClick={() => setSelectedEventId(event.id)} className="glass p-6 hover:shadow-[0_0_20px_rgba(124,58,237,0.2)] transition-all cursor-pointer relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        <div className="absolute top-4 right-4 bg-primary text-white font-mono text-sm px-3 py-1 rounded-full shadow-lg font-bold">
+                          {getTimeline(event.eventDate)}
+                        </div>
+                        <h3 className="text-xl font-bold mb-2 pr-24 group-hover:text-primary transition-colors">{event.name}</h3>
+                        <p className="opacity-70 mb-4 text-sm line-clamp-2">{event.description}</p>
+                        <div className="flex justify-between text-sm opacity-80 border-t border-black/10 dark:border-white/10 pt-4 mt-4">
+                          <span className="font-medium">Date:</span>
+                          <span>{event.eventDate?.toDate().toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm opacity-80 mt-2">
+                          <span className="font-medium">Invites:</span>
+                          <span>{(event.invitees || []).length} clients</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
         {events.length === 0 && <p className="opacity-70">No events found. Create one to get started!</p>}
       </div>
 

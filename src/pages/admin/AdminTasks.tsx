@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, doc, writeBatch } from 'firebase/firestore';
-import { getTaskStyles } from '../../lib/utils';
+import { getTaskStyles, groupEvents } from '../../lib/utils';
 
 const AdminTasks = () => {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -206,7 +206,23 @@ const AdminTasks = () => {
             onChange={(e) => setSelectedEventForGantt(e.target.value)}
           >
             <option value="" className="bg-white dark:bg-slate-900 text-black dark:text-white">Select Event to View</option>
-            {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
+            {(() => {
+              const { upcoming, past } = groupEvents(events);
+              return (
+                <>
+                  {upcoming.length > 0 && (
+                    <optgroup label="Upcoming Events">
+                      {upcoming.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                    </optgroup>
+                  )}
+                  {past.length > 0 && (
+                    <optgroup label="Past Events">
+                      {past.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                    </optgroup>
+                  )}
+                </>
+              );
+            })()}
           </select>
         </div>
         
@@ -505,7 +521,23 @@ const AdminTasks = () => {
               
               <select required className="glass-input appearance-none bg-white dark:bg-black/20" value={newTask.eventId} onChange={e => setNewTask({...newTask, eventId: e.target.value})}>
                 <option value="" disabled className="bg-white dark:bg-slate-900 text-black dark:text-white">1. Select Event</option>
-                {events.map(ev => <option key={ev.id} value={ev.id} className="bg-white dark:bg-slate-900 text-black dark:text-white">{ev.name}</option>)}
+                {(() => {
+                  const { upcoming, past } = groupEvents(events);
+                  return (
+                    <>
+                      {upcoming.length > 0 && (
+                        <optgroup label="Upcoming Events">
+                          {upcoming.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                        </optgroup>
+                      )}
+                      {past.length > 0 && (
+                        <optgroup label="Past Events">
+                          {past.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                        </optgroup>
+                      )}
+                    </>
+                  );
+                })()}
               </select>
 
               <input type="text" placeholder="Task Title (e.g. Setup Mics)" required className="glass-input" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} />
