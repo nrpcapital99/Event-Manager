@@ -3,19 +3,23 @@ import { db } from '../../firebase';
 import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import './AdminCommandBoard.css';
 
+interface AdminCommandBoardProps {
+  children?: React.ReactNode;
+  isEmployeeMode?: boolean;
+  syncEventId?: string | null;
+  employeeData?: any;
+  renderHeaderActions?: () => React.ReactNode;
+  hideTeamTasks?: boolean;
+}
+
 const AdminCommandBoard = ({ 
   isEmployeeMode = false, 
   employeeData = null,
   syncEventId = null,
   renderHeaderActions,
-  children
-}: { 
-  isEmployeeMode?: boolean, 
-  employeeData?: any,
-  syncEventId?: string | null,
-  renderHeaderActions?: () => React.ReactNode,
-  children?: React.ReactNode
-}) => {
+  children,
+  hideTeamTasks = false
+}: AdminCommandBoardProps) => {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   
@@ -370,7 +374,8 @@ const AdminCommandBoard = ({
         </section>
       )}
 
-      <section>
+      {!hideTeamTasks && (
+        <section>
           <div className="shead">
             <h2>Task Completion by Team</h2>
             <span className="note">Live task metrics for this event</span>
@@ -446,6 +451,7 @@ const AdminCommandBoard = ({
             {owners.length === 0 && <div className="text-sm opacity-50 p-4 italic">No team members assigned to this event yet.</div>}
           </div>
         </section>
+      )}
 
       {isEmployeeMode && children && (
         <section className="mt-8 border-t-2 border-[var(--ink)] pt-8">

@@ -4,119 +4,115 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --paper: #ECEFE8;
+    --chalk: #fff;
+    --ink: #17202A;
+    --soft: #5A6672;
+    --pine: #135E4C;
+    --pine-lt: #7FA898;
+    --plum: #6E2A50;
+    --plum-lt: #B98BA6;
+    --rule: #D2D7CB;
+    --red: #8E2020;
+    --amber: #8A6A12;
+    --shadow: 0 1px 0 rgba(23,32,42,.06), 0 8px 24px -18px rgba(23,32,42,.5);
     
-    /* Vibrant Primary Color - Indigo/Purple */
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%;
-    
-    /* Vibrant Secondary - Pink/Rose */
-    --secondary: 346.8 77.2% 49.8%;
-    --secondary-foreground: 355.7 100% 97.3%;
-    
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 262.1 83.3% 57.8%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262.1 83.3% 57.8%;
-    --radius: 1rem;
+    --display: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+    --body: 'Newsreader', Georgia, serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-    /* Light Glassmorphism - highly visible */
-    --glass-bg: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.9);
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-    --glass-text: #1a1a1a;
+    /* Tailwind mapped to new colors */
+    --background: 0 0% 93%; /* #ECEFE8 */
+    --foreground: 213 29% 12%; /* #17202A */
+    --primary: 165 66% 22%; /* --pine */
+    --primary-foreground: 0 0% 100%;
+    --destructive: 0 63% 34%; /* --red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 90 9% 82%; /* --rule */
+    --radius: 4px;
+    
+    /* Overwrite old glass vars just in case */
+    --glass-bg: var(--chalk);
+    --glass-border: var(--rule);
+    --glass-shadow: var(--shadow);
+    --glass-text: var(--ink);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 346.8 77.2% 49.8%;
-    --secondary-foreground: 210 40% 98%;
-    
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 262.1 83.3% 57.8%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262.1 83.3% 57.8%;
-
-    /* Dark Glassmorphism - clearer contrast */
-    --glass-bg: rgba(17, 25, 40, 0.90);
-    --glass-border: rgba(255, 255, 255, 0.3);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
-    --glass-text: #ffffff;
+    /* Keep the same for dark mode or invert if needed, but let's stick to the cream theme mostly */
+    --glass-bg: var(--chalk);
+    --glass-border: var(--rule);
+    --glass-text: var(--ink);
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-[var(--rule)];
   }
   body {
-    @apply min-h-screen font-sans;
-    color: var(--glass-text);
-    /* Vibrant Light Mesh Gradient Background */
-    background: 
-      radial-gradient(at 0% 0%, hsla(253,100%,90%,1) 0, transparent 50%), 
-      radial-gradient(at 50% 0%, hsla(225,100%,95%,1) 0, transparent 50%), 
-      radial-gradient(at 100% 0%, hsla(339,100%,90%,1) 0, transparent 50%);
-    background-color: #f8fafc;
-    background-size: cover;
-    background-attachment: fixed;
-    transition: background 0.5s ease;
-  }
-  .dark body {
-    /* Vibrant Dark Mesh Gradient Background */
-    background: 
-      radial-gradient(at 0% 0%, hsla(253,16%,15%,1) 0, transparent 50%), 
-      radial-gradient(at 50% 0%, hsla(225,39%,20%,1) 0, transparent 50%), 
-      radial-gradient(at 100% 0%, hsla(339,49%,20%,1) 0, transparent 50%);
-    background-color: #0f111a;
+    @apply min-h-screen;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 @layer utilities {
   .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
-    border-radius: var(--radius);
+    background: var(--chalk);
+    border: 1px solid var(--rule);
+    box-shadow: var(--shadow);
+    border-radius: 4px;
   }
   .glass-panel {
-    @apply glass p-8;
+    @apply glass p-6;
   }
   .glass-input {
-    @apply bg-transparent border border-[var(--glass-border)] outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all px-4 py-3 rounded-lg w-full;
-    color: var(--glass-text);
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    color: var(--ink);
+    font-family: var(--mono);
+    outline: none;
+    padding: 8px 12px;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .glass-input:focus {
+    border-color: var(--pine);
   }
   
   /* Buttons */
   .btn-primary {
-    @apply bg-gradient-to-r from-primary to-purple-600 text-white font-medium py-2 px-6 rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 transition-all duration-300;
+    background: var(--ink);
+    color: var(--chalk);
+    border-radius: 3px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: opacity 0.2s;
   }
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+  
   .btn-secondary {
-    @apply bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 font-medium py-2 px-6 rounded-lg hover:bg-black/10 dark:hover:bg-white/20 transition-all duration-300;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: 3px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: all 0.2s;
   }
+  .btn-secondary:hover {
+    background: var(--rule);
+  }
+  
+
 }
