@@ -1,4 +1,5 @@
 import { Building2, CalendarDays, ContactRound, Wallet, Users, ArrowUpRight, House } from 'lucide-react';
+import { count } from '@/lib/model';
 
 export type Nav = 'overview' | 'events' | 'tasks' | 'clients' | 'expenses' | 'people';
 export const navItems = [
@@ -25,12 +26,12 @@ export function WorkspaceStart({ admin, activeEvents, officeTasks }: { admin: bo
     <div className="start-heading"><span className="eyebrow">YOUR WORKSPACE</span><h1 id="start-heading">What are you working on?</h1><p>Choose a section to get started.</p></div>
     <div className="workspace-choices">
       <a href="#events" className="workspace-choice event-choice">
-        <span className="choice-icon"><CalendarDays /></span><span className="choice-count">{activeEvents} active events</span>
+        <span className="choice-icon"><CalendarDays /></span><span className="choice-count">{count(activeEvents, 'active event')}</span>
         <h2>Events</h2><p>Plan an event, assign work, manage guests, and track event expenses.</p>
         <span className="choice-action">Open events <ArrowUpRight size={20} /></span>
       </a>
       <a href="#tasks" className="workspace-choice office-choice">
-        <span className="choice-icon"><Building2 /></span><span className="choice-count">{officeTasks} open office tasks</span>
+        <span className="choice-icon"><Building2 /></span><span className="choice-count">{count(officeTasks, 'open office task')}</span>
         <h2>Office</h2><p>Manage everyday tasks, see who is responsible, and follow deadlines.</p>
         <span className="choice-action">Open office <ArrowUpRight size={20} /></span>
       </a>

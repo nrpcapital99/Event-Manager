@@ -16,3 +16,4 @@ export const completion = (t:Task) => Math.round(t.assigneeIds.filter(id=>t.prog
 export const overdue = (t:Task) => t.status!=='Complete' && t.deadline<today();
 export const initials = (name:string) => name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
 
+export const count = (n:number, one:string, many = one+'s') => n + ' ' + (n === 1 ? one : many);
