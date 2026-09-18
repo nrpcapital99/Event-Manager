@@ -15,7 +15,7 @@ async function run(request){
  const uid=request.auth.uid, d=request.data||{}, at=now();
  if(d.action==='bootstrapAdmin'){
   const u=await auth.getUser(uid);
-  if(u.email?.toLowerCase()!=='nrpcapital99@gmail.com'||!u.emailVerified||u.disabled)throw new HttpsError('permission-denied','Verify the designated admin email before activating the workspace.');
+  if(u.email?.toLowerCase()!=='nrpcapital99@gmail.com'||u.disabled)throw new HttpsError('permission-denied','Only the designated admin email can activate this workspace.');
   await db.runTransaction(async tx=>{const ref=c('members').doc(uid), old=await tx.get(ref);if(old.exists)return;const lock=db.doc('nrp_settings/bootstrap'),initialized=await tx.get(lock);if(initialized.exists)throw new HttpsError('failed-precondition','An admin has already activated this workspace.');tx.set(ref,{name:'NRP Admin',email:u.email.toLowerCase(),role:'admin',active:true,department:'Administration',createdAt:at});tx.set(lock,{uid,at});});return {ok:true};
  }
  const member=await existing('members',uid);if(!member.active)throw new HttpsError('permission-denied','Your workspace access is inactive.');

@@ -52,7 +52,7 @@ firebase deploy --only hosting
 ```
 
 5. Add the frontend hostname to Authentication's authorized domains if using another host.
-6. At the real sign-in page, use the existing Firebase Authentication account for nrpcapital99@gmail.com, or use First-time admin setup to create it. Verify that email, then select **I've verified — activate workspace**.
+6. At the real sign-in page, use the existing Firebase Authentication account for nrpcapital99@gmail.com, or use First-time admin setup to create it. Sign in, then select **Activate workspace**.
 7. Add employees through Team members. Each employee receives an email/password login; share their temporary password privately. Password reset is available on the login screen.
 
 The backend deployment and live end-to-end Firebase verification still need to be completed by an authenticated Firebase project owner. No passwords, private keys, or service-account credentials are included.
@@ -80,7 +80,7 @@ Employees can read only tasks whose assigneeIds include their UID, see co-assign
 
 Active members can access shared event and client records to support guest operations. Admins can manage events, employees, assignments, and deadlines. Deactivation retains task history.
 
-The first administrator can be bootstrapped only by the verified, designated admin email. A Firestore initialization lock prevents claiming the first-admin role more than once. Production data is never seeded automatically.
+The first administrator can be bootstrapped only by the designated admin email, signed in with its password. A Firestore initialization lock prevents claiming the first-admin role more than once. Production data is never seeded automatically.
 
 ## Data
 
