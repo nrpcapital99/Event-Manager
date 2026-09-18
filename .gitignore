@@ -1,0 +1,17 @@
+node_modules/
+functions/node_modules/
+dist/
+coverage/
+.firebase/
+.wrangler/
+.sites-runtime/
+.openai/
+work/
+outputs/
+.env*
+*.pem
+*service-account*.json
+firebase-debug.log*
+npm-debug.log*
+*.tsbuildinfo
+.DS_Store
