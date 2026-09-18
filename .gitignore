@@ -12,6 +12,7 @@ outputs/
 *.pem
 *service-account*.json
 firebase-debug.log*
+firestore-debug.log*
 npm-debug.log*
 *.tsbuildinfo
 .DS_Store
