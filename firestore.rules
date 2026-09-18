@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function member() { return request.auth != null && exists(/databases/$(database)/documents/nrp_members/$(request.auth.uid)) && get(/databases/$(database)/documents/nrp_members/$(request.auth.uid)).data.active == true; }
+  function admin() { return member() && get(/databases/$(database)/documents/nrp_members/$(request.auth.uid)).data.role == 'admin'; }
+  function taskReader(task) { return admin() || (member() && request.auth.uid in task.assigneeIds); }
+  match /nrp_members/{uid} { allow get: if request.auth != null && (request.auth.uid == uid || admin()); allow list: if admin(); }
+  match /nrp_tasks/{taskId} {
+   allow read: if taskReader(resource.data);
+   match /activity/{activityId} { allow read: if taskReader(get(/databases/$(database)/documents/nrp_tasks/$(taskId)).data); }
+  }
+  match /nrp_events/{eventId} { allow read: if member(); match /activity/{activityId} { allow read: if admin(); } }
+  match /nrp_clients/{clientId} { allow read: if member(); }
+  match /nrp_guests/{guestId} { allow read: if member(); match /activity/{activityId} { allow read: if admin(); } }
+  match /nrp_expenses/{expenseId} { allow read: if admin() || (member() && resource.data.paidBy == request.auth.uid); }
+  match /nrp_reviews/{reviewId} { allow read: if member(); }
+  // Every mutation is authorized and validated by the Node.js callable backend.
+  match /{document=**} { allow write: if false; }
+ }
+}

@@ -1,32 +1,90 @@
-# React + TypeScript + Vite
+# NRP Capitals Workspace
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A responsive company workspace for event operations and office task management.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React 19, TypeScript, Vite, shadcn/ui, Tailwind CSS, Firebase Authentication, Cloud Firestore, and a Node.js Firebase callable backend in the asia-south1 region.
 
-## React Compiler
+## Run locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Use Node.js 22.13 or newer (the Firebase Functions deployment runtime is Node.js 22).
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm ci
+npm ci --prefix functions
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Open the local URL shown in the terminal. The app uses the supplied Firebase project, teammanagement-882f0.
+
+For a read-only design preview using fictional sample records, open /?preview=admin or /?preview=team on the development server. These previews are disabled in production builds. They never write sample records to Firebase.
+
+## Validate and build
+
+```sh
+npm run typecheck
+npm test
+npm run build
+npm run preview
+```
+
+The static frontend is built into dist/. The backend has five domain tests covering permissions, group completion, deadline history, and validation. A successful build is not confirmation that Firebase has been deployed.
+
+## Firebase setup and deployment
+
+1. Enable Email/Password in Firebase Authentication.
+2. Create a Cloud Firestore database. Choose the database region deliberately before creating it.
+3. Ensure the project has a billing plan that supports Cloud Functions deployment. Billing changes must be made by the account owner.
+4. Install the official Firebase CLI, authenticate as a project owner, then deploy:
+
+```sh
+npm install -g firebase-tools
+firebase login
+firebase use teammanagement-882f0
+npm ci --prefix functions
+firebase deploy --only firestore:rules,firestore:indexes,functions
+npm run build
+firebase deploy --only hosting
+```
+
+5. Add the frontend hostname to Authentication's authorized domains if using another host.
+6. At the real sign-in page, use the existing Firebase Authentication account for nrpcapital99@gmail.com, or use First-time admin setup to create it. Verify that email, then select **I've verified — activate workspace**.
+7. Add employees through Team members. Each employee receives an email/password login; share their temporary password privately. Password reset is available on the login screen.
+
+The backend deployment and live end-to-end Firebase verification still need to be completed by an authenticated Firebase project owner. No passwords, private keys, or service-account credentials are included.
+
+## Workflows
+
+- Admin overview with event and task command tables.
+- Event plans, event tasks, read-only Gantt timeline, and event-day responsibilities.
+- Personal office tasks and admin-created individual or group assignments.
+- Each assignee completes their own part. A task completes only when everyone finishes.
+- Only admins can change assigned deadlines or assign tasks to other people.
+- Reusable searchable clients; event client list, invitation log, RSVP, and manual attendance.
+- Walk-ins can be added directly, with a total number of people attending.
+- Out-of-pocket INR expenses. No receipt, approval, or reimbursement workflow.
+- Event hits and misses.
+- Task activity logs, original deadlines, and server-generated completion timestamps.
+- Light and dark themes. No notification integrations yet.
+
+## Access model
+
+Firebase Authentication identifies users. Active nrp_members records determine authorization. Firestore rules deny direct client writes; the Node.js callable function validates every mutation.
+
+Employees can read only tasks whose assigneeIds include their UID, see co-assignees, and update only their own progress. They can create office tasks for themselves but cannot edit their deadlines after creation. Employee expense views contain only their own entries.
+
+Active members can access shared event and client records to support guest operations. Admins can manage events, employees, assignments, and deadlines. Deactivation retains task history.
+
+The first administrator can be bootstrapped only by the verified, designated admin email. A Firestore initialization lock prevents claiming the first-admin role more than once. Production data is never seeded automatically.
+
+## Data
+
+Collections are prefixed nrp_: members, tasks, events, clients, guests, expenses, reviews, and settings. Task activity is stored under each task's activity subcollection. Expenses use integer paise. Dates are rendered in IST.
+
+Lists currently use live Firestore subscriptions and client-side search; the larger tables paginate their rendered rows. Before using very large datasets, add server-side pagination and a dedicated full-text search index. Real-device testing, Firebase Rules emulator tests, and live concurrent-user checks remain release-gate work.
+
+## Configuration
+
+The Firebase web configuration in lib/firebase.ts is public client configuration, not an administrative credential. Security relies on deployed Firestore rules and backend authorization. Never commit Firebase Admin credentials, service-account JSON, CLI auth state, or .env secrets.
+
