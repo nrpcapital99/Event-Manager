@@ -25,11 +25,14 @@ For a read-only design preview using fictional sample records, open /?preview=ad
 ```sh
 npm run typecheck
 npm test
+npm run test:rules
 npm run build
 npm run preview
 ```
 
 The static frontend is built into dist/. The backend has five domain tests covering permissions, group completion, deadline history, and validation. A successful build is not confirmation that Firebase has been deployed.
+
+`npm run test:rules` checks firestore.rules against the Firestore emulator: who counts as a member, which tasks and expenses each person can read, that task and event activity follow the same limits, and that every direct client write is refused. It needs **Java** on the PATH, because the Firestore emulator runs on the JVM. Without it the command stops with `Could not spawn java -version`. Install a JDK (for example `winget install EclipseAdoptium.Temurin.21.JDK`) and reopen the terminal.
 
 ## Firebase setup and deployment
 
@@ -83,7 +86,7 @@ The first administrator can be bootstrapped only by the verified, designated adm
 
 Collections are prefixed nrp_: members, tasks, events, clients, guests, expenses, reviews, and settings. Task activity is stored under each task's activity subcollection. Expenses use integer paise. Dates are rendered in IST.
 
-Lists currently use live Firestore subscriptions and client-side search; the larger tables paginate their rendered rows. Before using very large datasets, add server-side pagination and a dedicated full-text search index. Real-device testing, Firebase Rules emulator tests, and live concurrent-user checks remain release-gate work.
+Lists currently use live Firestore subscriptions and client-side search; the larger tables paginate their rendered rows. Before using very large datasets, add server-side pagination and a dedicated full-text search index. Firestore rules now have emulator tests (`npm run test:rules`). Real-device testing and live concurrent-user checks remain release-gate work.
 
 ## Configuration
 
