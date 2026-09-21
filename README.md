@@ -54,8 +54,9 @@ firebase deploy --only firestore:rules,firestore:indexes,hosting
 
 ## Workflows
 
-- Home screen with large Events and Office cards, plus Clients, Expenses, and Team shortcuts.
-- Persistent section navigation on desktop and mobile, and a focused overdue/blocked task list.
+- Home screen with employee cards and each person’s assigned tasks directly underneath.
+- A compact Event button in the top-right opens the separate event workspace.
+- Persistent Home, Office, Clients, and Expenses navigation on desktop and mobile.
 - Tile and list views for tasks, events, guests, clients, expenses, and team members.
 - Event plans, event tasks, read-only Gantt timeline, and event-day responsibilities.
 - Personal office tasks and admin-created individual or group assignments.
