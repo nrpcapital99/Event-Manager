@@ -13,7 +13,7 @@ service cloud.firestore {
    allow get: if signedIn() && (request.auth.uid == uid || admin());
    allow list: if admin();
    allow create: if
-    (admin() && uid != request.auth.uid && request.resource.data.role == 'team' && request.resource.data.active == true)
+    (admin() && uid != request.auth.uid && request.resource.data.role in ['team', 'admin'] && request.resource.data.active == true)
     || (designatedAdmin()
       && uid == request.auth.uid
       && !exists(/databases/$(database)/documents/nrp_settings/bootstrap)
@@ -24,7 +24,6 @@ service cloud.firestore {
       && getAfter(/databases/$(database)/documents/nrp_settings/bootstrap).data.uid == request.auth.uid);
    allow update: if admin()
     && uid != request.auth.uid
-    && resource.data.role == 'team'
     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt']);
    allow delete: if false;
   }
@@ -56,7 +55,6 @@ service cloud.firestore {
    allow update: if admin() || (
     member()
     && request.auth.uid in resource.data.assigneeIds
-    && resource.data.progress[request.auth.uid].status != 'Complete'
     && request.resource.data.assigneeIds == resource.data.assigneeIds
     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['progress', 'status', 'updatedAt', 'completedAt'])
     && request.resource.data.progress.diff(resource.data.progress).affectedKeys().hasOnly([request.auth.uid])

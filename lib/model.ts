@@ -1,5 +1,5 @@
 export type ProgressStatus = 'To do' | 'In progress' | 'Blocked' | 'Complete';
-export type Member = { id: string; name: string; email: string; role: 'admin'|'team'; active: boolean; department: string; createdAt: string };
+export type Member = { id: string; name: string; email: string; role: 'admin'|'team'; active: boolean; department: string; employeeType?: 'frontend'|'backend'; createdAt: string };
 export type EventRecord = { id: string; title: string; date: string; endDate: string; location: string; type: string; status: 'Planning'|'Live'|'Complete'; description: string; createdAt: string };
 export type PersonProgress = { status: ProgressStatus; updatedAt: string; completedAt: string|null };
 export type Task = { id: string; title: string; description: string; eventId: string; kind: 'office'|'event'|'responsibility'; start: string; deadline: string; originalDeadline: string; priority: 'Low'|'Medium'|'High'; assigneeIds: string[]; assigneeNames: Record<string,string>; progress: Record<string,PersonProgress>; status: ProgressStatus; createdBy: string; createdAt: string; updatedAt: string; completedAt: string|null };

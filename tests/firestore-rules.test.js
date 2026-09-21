@@ -147,11 +147,11 @@ describe('expenses', () => {
 });
 
 describe('writes', () => {
-  it('lets an admin manage events and team access without creating another admin', async () => {
+  it('lets an admin manage access and create another admin', async () => {
     const db = as(ADMIN);
     await assertSucceeds(setDoc(doc(db, 'nrp_events', 'e2'), { title: 'Planning day' }));
     await assertSucceeds(setDoc(doc(db, 'nrp_members', 'new-team'), { name: 'New', email: 'new@example.test', role: 'team', active: true }));
-    await assertFails(setDoc(doc(db, 'nrp_members', 'new-admin'), { name: 'Admin', email: 'admin@example.test', role: 'admin', active: true }));
+    await assertSucceeds(setDoc(doc(db, 'nrp_members', 'new-admin'), { name: 'Admin', email: 'admin@example.test', role: 'admin', active: true }));
     await assertSucceeds(updateDoc(doc(db, 'nrp_members', COLLEAGUE), { active: false, updatedAt: 'later' }));
     await assertFails(updateDoc(doc(db, 'nrp_members', COLLEAGUE), { role: 'admin' }));
   });
