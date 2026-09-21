@@ -84,6 +84,8 @@ The first administrator can be bootstrapped only by the designated admin email, 
 
 Collections are prefixed nrp_: members, tasks, events, clients, guests, expenses, reviews, and settings. Task activity is stored under each task's activity subcollection. Expenses use integer paise. Dates are rendered in IST.
 
+The live test dataset uses stable IDs beginning with `test_` and clear names such as `TEST 1`, `TEST 2`, and `TEST 3`. An authenticated project owner can restore the same records without creating duplicates by running `npm run seed:test-data`.
+
 Lists currently use live Firestore subscriptions and client-side search; the larger tables paginate their rendered rows. Before using very large datasets, add server-side pagination and a dedicated full-text search index. Firestore rules now have emulator tests (`npm run test:rules`). Real-device testing and live concurrent-user checks remain release-gate work.
 
 ## Configuration
