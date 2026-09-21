@@ -52,7 +52,7 @@ firebase deploy --only hosting
 ```
 
 5. Add the frontend hostname to Authentication's authorized domains if using another host.
-6. At the real sign-in page, use the existing Firebase Authentication account for nrpcapital99@gmail.com, or use First-time admin setup to create it. Sign in, then select **Activate workspace**.
+6. At the real sign-in page, use the existing Firebase Authentication account for nrpcapital99@gmail.com, or use First-time admin setup. The admin workspace is initialized automatically after email/password sign-in. Email verification and manual activation are not required.
 7. Add employees through Team members. Each employee receives an email/password login; share their temporary password privately. Password reset is available on the login screen.
 
 The backend deployment and live end-to-end Firebase verification still need to be completed by an authenticated Firebase project owner. No passwords, private keys, or service-account credentials are included.
@@ -61,6 +61,7 @@ The backend deployment and live end-to-end Firebase verification still need to b
 
 - Home screen with large Events and Office cards, plus Clients, Expenses, and Team shortcuts.
 - Persistent section navigation on desktop and mobile, and a focused overdue/blocked task list.
+- Tile and list views for tasks, events, guests, clients, expenses, and team members.
 - Event plans, event tasks, read-only Gantt timeline, and event-day responsibilities.
 - Personal office tasks and admin-created individual or group assignments.
 - Each assignee completes their own part. A task completes only when everyone finishes.
@@ -93,4 +94,3 @@ Lists currently use live Firestore subscriptions and client-side search; the lar
 The supplied Analytics measurement ID is configured. Analytics loads only in production, checks browser support, and cannot block sign-in if unavailable. Development previews do not initialize Analytics.
 
 The Firebase web configuration in lib/firebase.ts is public client configuration, not an administrative credential. Security relies on deployed Firestore rules and backend authorization. Never commit Firebase Admin credentials, service-account JSON, CLI auth state, or .env secrets.
-
