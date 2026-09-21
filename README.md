@@ -4,15 +4,14 @@ A responsive company workspace for event operations and office task management.
 
 ## Stack
 
-React 19, TypeScript, Vite, shadcn/ui, Tailwind CSS, Firebase Authentication, Cloud Firestore, and a Node.js Firebase callable backend in the asia-south1 region.
+React 19, TypeScript, Vite, shadcn/ui, Tailwind CSS, Firebase Authentication, and Cloud Firestore.
 
 ## Run locally
 
-Use Node.js 22.13 or newer (the Firebase Functions deployment runtime is Node.js 22).
+Use Node.js 22.13 or newer.
 
 ```sh
 npm ci
-npm ci --prefix functions
 npm run dev
 ```
 
@@ -30,32 +29,28 @@ npm run build
 npm run preview
 ```
 
-The static frontend is built into dist/. The backend has five domain tests covering permissions, group completion, deadline history, and validation. A successful build is not confirmation that Firebase has been deployed.
+The static frontend is built into dist/. Domain tests cover permissions, group completion, deadline history, and validation. A successful build is not confirmation that Firebase has been deployed.
 
-`npm run test:rules` checks firestore.rules against the Firestore emulator: who counts as a member, which tasks and expenses each person can read, that task and event activity follow the same limits, and that every direct client write is refused. It needs **Java** on the PATH, because the Firestore emulator runs on the JVM. Without it the command stops with `Could not spawn java -version`. Install a JDK (for example `winget install EclipseAdoptium.Temurin.21.JDK`) and reopen the terminal.
+`npm run test:rules` checks firestore.rules against the Firestore emulator: who counts as a member, which records each person can read, and which direct Firestore changes each role can make. It needs **Java** on the PATH because the emulator runs on the JVM.
 
 ## Firebase setup and deployment
 
 1. Enable Email/Password in Firebase Authentication.
 2. Create a Cloud Firestore database. Choose the database region deliberately before creating it.
-3. Ensure the project has a billing plan that supports Cloud Functions deployment. Billing changes must be made by the account owner.
+3. Keep the project on the free Spark plan. This app does not require Cloud Functions.
 4. Install the official Firebase CLI, authenticate as a project owner, then deploy:
 
 ```sh
 npm install -g firebase-tools
 firebase login
 firebase use teammanagement-882f0
-npm ci --prefix functions
-firebase deploy --only firestore:rules,firestore:indexes,functions
 npm run build
-firebase deploy --only hosting
+firebase deploy --only firestore:rules,firestore:indexes,hosting
 ```
 
 5. Add the frontend hostname to Authentication's authorized domains if using another host.
 6. At the real sign-in page, use the existing Firebase Authentication account for nrpcapital99@gmail.com, or use First-time admin setup. The admin workspace is initialized automatically after email/password sign-in. Email verification and manual activation are not required.
 7. Add employees through Team members. Each employee receives an email/password login; share their temporary password privately. Password reset is available on the login screen.
-
-The backend deployment and live end-to-end Firebase verification still need to be completed by an authenticated Firebase project owner. No passwords, private keys, or service-account credentials are included.
 
 ## Workflows
 
@@ -70,16 +65,16 @@ The backend deployment and live end-to-end Firebase verification still need to b
 - Walk-ins can be added directly, with a total number of people attending.
 - Out-of-pocket INR expenses. No receipt, approval, or reimbursement workflow.
 - Event hits and misses.
-- Task activity logs, original deadlines, and server-generated completion timestamps.
+- Task activity logs, original deadlines, and completion timestamps.
 - Light and dark themes. No notification integrations yet.
 
 ## Access model
 
-Firebase Authentication identifies users. Active nrp_members records determine authorization. Firestore rules deny direct client writes; the Node.js callable function validates every mutation.
+Firebase Authentication identifies users. Active `nrp_members` records determine authorization. The app writes directly to Firestore, and deployed Firestore rules validate permissions for every read and write. This design works on Firebase's free Spark plan.
 
 Employees can read only tasks whose assigneeIds include their UID, see co-assignees, and update only their own progress. They can create office tasks for themselves but cannot edit their deadlines after creation. Employee expense views contain only their own entries.
 
-Active members can access shared event and client records to support guest operations. Admins can manage events, employees, assignments, and deadlines. Deactivation retains task history.
+Active members can access shared event and client records to support guest operations. Admins can manage events, employees, assignments, and deadlines. Deactivation immediately blocks workspace data while retaining task history. On Spark, it does not delete or disable the underlying Firebase Authentication account.
 
 The first administrator can be bootstrapped only by the designated admin email, signed in with its password. A Firestore initialization lock prevents claiming the first-admin role more than once. Production data is never seeded automatically.
 
@@ -93,4 +88,4 @@ Lists currently use live Firestore subscriptions and client-side search; the lar
 
 The supplied Analytics measurement ID is configured. Analytics loads only in production, checks browser support, and cannot block sign-in if unavailable. Development previews do not initialize Analytics.
 
-The Firebase web configuration in lib/firebase.ts is public client configuration, not an administrative credential. Security relies on deployed Firestore rules and backend authorization. Never commit Firebase Admin credentials, service-account JSON, CLI auth state, or .env secrets.
+The Firebase web configuration in `lib/firebase.ts` is public client configuration, not an administrative credential. Security relies on the deployed Firestore rules. Never commit Firebase Admin credentials, service-account JSON, CLI auth state, or `.env` secrets.

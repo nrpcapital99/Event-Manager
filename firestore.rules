@@ -1,20 +1,124 @@
 rules_version = '2';
 service cloud.firestore {
  match /databases/{database}/documents {
-  function member() { return request.auth != null && exists(/databases/$(database)/documents/nrp_members/$(request.auth.uid)) && get(/databases/$(database)/documents/nrp_members/$(request.auth.uid)).data.active == true; }
-  function admin() { return member() && get(/databases/$(database)/documents/nrp_members/$(request.auth.uid)).data.role == 'admin'; }
+  function signedIn() { return request.auth != null; }
+  function memberPath(uid) { return /databases/$(database)/documents/nrp_members/$(uid); }
+  function member() { return signedIn() && exists(memberPath(request.auth.uid)) && get(memberPath(request.auth.uid)).data.active == true; }
+  function admin() { return member() && get(memberPath(request.auth.uid)).data.role == 'admin'; }
+  function designatedAdmin() { return signedIn() && request.auth.token.email == 'nrpcapital99@gmail.com'; }
+  function validStatus(value) { return value in ['To do', 'In progress', 'Blocked', 'Complete']; }
   function taskReader(task) { return admin() || (member() && request.auth.uid in task.assigneeIds); }
-  match /nrp_members/{uid} { allow get: if request.auth != null && (request.auth.uid == uid || admin()); allow list: if admin(); }
+
+  match /nrp_members/{uid} {
+   allow get: if signedIn() && (request.auth.uid == uid || admin());
+   allow list: if admin();
+   allow create: if
+    (admin() && uid != request.auth.uid && request.resource.data.role == 'team' && request.resource.data.active == true)
+    || (designatedAdmin()
+      && uid == request.auth.uid
+      && !exists(/databases/$(database)/documents/nrp_settings/bootstrap)
+      && request.resource.data.role == 'admin'
+      && request.resource.data.active == true
+      && request.resource.data.email == 'nrpcapital99@gmail.com'
+      && existsAfter(/databases/$(database)/documents/nrp_settings/bootstrap)
+      && getAfter(/databases/$(database)/documents/nrp_settings/bootstrap).data.uid == request.auth.uid);
+   allow update: if admin()
+    && uid != request.auth.uid
+    && resource.data.role == 'team'
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt']);
+   allow delete: if false;
+  }
+
+  match /nrp_settings/{settingId} {
+   allow create: if settingId == 'bootstrap'
+    && designatedAdmin()
+    && !exists(/databases/$(database)/documents/nrp_settings/bootstrap)
+    && request.resource.data.uid == request.auth.uid
+    && existsAfter(memberPath(request.auth.uid))
+    && getAfter(memberPath(request.auth.uid)).data.role == 'admin'
+    && getAfter(memberPath(request.auth.uid)).data.active == true;
+   allow read, update, delete: if false;
+  }
+
   match /nrp_tasks/{taskId} {
    allow read: if taskReader(resource.data);
-   match /activity/{activityId} { allow read: if taskReader(get(/databases/$(database)/documents/nrp_tasks/$(taskId)).data); }
+   allow create: if member()
+    && request.resource.data.keys().hasAll(['title', 'kind', 'start', 'deadline', 'priority', 'assigneeIds', 'progress', 'status', 'createdBy', 'createdAt', 'updatedAt'])
+    && request.resource.data.assigneeIds.size() >= 1
+    && request.resource.data.assigneeIds.size() <= 30
+    && validStatus(request.resource.data.status)
+    && (admin() || (
+      request.resource.data.kind == 'office'
+      && request.resource.data.assigneeIds == [request.auth.uid]
+      && request.resource.data.createdBy == request.auth.uid
+      && request.resource.data.progress[request.auth.uid].status == 'To do'
+    ));
+   allow update: if admin() || (
+    member()
+    && request.auth.uid in resource.data.assigneeIds
+    && resource.data.progress[request.auth.uid].status != 'Complete'
+    && request.resource.data.assigneeIds == resource.data.assigneeIds
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['progress', 'status', 'updatedAt', 'completedAt'])
+    && request.resource.data.progress.diff(resource.data.progress).affectedKeys().hasOnly([request.auth.uid])
+    && validStatus(request.resource.data.progress[request.auth.uid].status)
+    && validStatus(request.resource.data.status)
+   );
+   allow delete: if false;
+
+   match /activity/{activityId} {
+    allow read: if taskReader(get(/databases/$(database)/documents/nrp_tasks/$(taskId)).data);
+    allow create: if member()
+     && request.resource.data.actorId == request.auth.uid
+     && (admin() || request.auth.uid in getAfter(/databases/$(database)/documents/nrp_tasks/$(taskId)).data.assigneeIds);
+    allow update, delete: if false;
+   }
   }
-  match /nrp_events/{eventId} { allow read: if member(); match /activity/{activityId} { allow read: if admin(); } }
-  match /nrp_clients/{clientId} { allow read: if member(); }
-  match /nrp_guests/{guestId} { allow read: if member(); match /activity/{activityId} { allow read: if admin(); } }
-  match /nrp_expenses/{expenseId} { allow read: if admin() || (member() && resource.data.paidBy == request.auth.uid); }
-  match /nrp_reviews/{reviewId} { allow read: if member(); }
-  // Every mutation is authorized and validated by the Node.js callable backend.
-  match /{document=**} { allow write: if false; }
+
+  match /nrp_events/{eventId} {
+   allow read: if member();
+   allow create, update: if admin();
+   allow delete: if false;
+   match /activity/{activityId} { allow read: if admin(); allow write: if false; }
+  }
+
+  match /nrp_clients/{clientId} {
+   allow read: if member();
+   allow create: if member() && request.resource.data.createdBy == request.auth.uid;
+   allow update: if admin();
+   allow delete: if false;
+  }
+
+  match /nrp_guests/{guestId} {
+   allow read: if member();
+   allow create, update: if member()
+    && request.resource.data.updatedBy == request.auth.uid
+    && request.resource.data.attendance is int
+    && request.resource.data.attendance >= 0
+    && request.resource.data.attendance <= 1000
+    && request.resource.data.rsvp in ['Pending', 'Yes', 'No', 'Maybe'];
+   allow delete: if false;
+   match /activity/{activityId} { allow read: if admin(); allow write: if false; }
+  }
+
+  match /nrp_expenses/{expenseId} {
+   allow read: if admin() || (member() && resource.data.paidBy == request.auth.uid);
+   allow create: if member()
+    && request.resource.data.paidBy == request.auth.uid
+    && request.resource.data.amountPaise is int
+    && request.resource.data.amountPaise > 0
+    && request.resource.data.amountPaise <= 1000000000
+    && request.resource.data.category in ['Travel', 'Food & beverage', 'Supplies', 'Venue', 'Other'];
+   allow update, delete: if false;
+  }
+
+  match /nrp_reviews/{reviewId} {
+   allow read: if member();
+   allow create: if member()
+    && request.resource.data.authorId == request.auth.uid
+    && request.resource.data.kind in ['Hit', 'Miss'];
+   allow update, delete: if false;
+  }
+
+  match /{document=**} { allow read, write: if false; }
  }
 }

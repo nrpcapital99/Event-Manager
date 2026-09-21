@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { after, before, describe, it } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 
 const ADMIN = 'admin1', EMPLOYEE = 'emp1', COLLEAGUE = 'emp2', INACTIVE = 'gone', STRANGER = 'nobody';
 let env;
@@ -26,8 +26,9 @@ before(async () => {
     await member(EMPLOYEE, 'team', true);
     await member(COLLEAGUE, 'team', true);
     await member(INACTIVE, 'team', false);
-    await setDoc(doc(db, 'nrp_tasks', 'mine'), { title: 'Mine', assigneeIds: [EMPLOYEE] });
-    await setDoc(doc(db, 'nrp_tasks', 'theirs'), { title: 'Theirs', assigneeIds: [COLLEAGUE] });
+    const task = (title, assignee) => ({ title, description: '', kind: 'office', eventId: '', start: '2026-09-21', deadline: '2026-09-22', originalDeadline: '2026-09-22', priority: 'Medium', assigneeIds: [assignee], assigneeNames: { [assignee]: assignee }, progress: { [assignee]: { status: 'To do', updatedAt: 'now', completedAt: null } }, status: 'To do', createdBy: assignee, createdAt: 'now', updatedAt: 'now', completedAt: null });
+    await setDoc(doc(db, 'nrp_tasks', 'mine'), task('Mine', EMPLOYEE));
+    await setDoc(doc(db, 'nrp_tasks', 'theirs'), task('Theirs', COLLEAGUE));
     await setDoc(doc(db, 'nrp_tasks', 'mine', 'activity', 'a1'), { action: 'Task created' });
     await setDoc(doc(db, 'nrp_tasks', 'theirs', 'activity', 'a1'), { action: 'Task created' });
     await setDoc(doc(db, 'nrp_events', 'e1'), { title: 'Investor Connect' });
@@ -146,13 +147,41 @@ describe('expenses', () => {
 });
 
 describe('writes', () => {
-  it('refuses every direct client write, including an admin’s', async () => {
-    // Mutations go through the callable backend, which authorizes and validates
-    // them; the rules deny the client path outright.
-    await assertFails(setDoc(doc(as(ADMIN), 'nrp_events', 'e2'), { title: 'Sneaky' }));
-    await assertFails(setDoc(doc(as(ADMIN), 'nrp_members', 'new'), { role: 'admin', active: true }));
-    await assertFails(setDoc(doc(as(EMPLOYEE), 'nrp_tasks', 'mine'), { title: 'Renamed' }));
-    await assertFails(setDoc(doc(as(EMPLOYEE), 'nrp_expenses', 'x3'), { paidBy: EMPLOYEE, amountPaise: 1 }));
+  it('lets an admin manage events and team access without creating another admin', async () => {
+    const db = as(ADMIN);
+    await assertSucceeds(setDoc(doc(db, 'nrp_events', 'e2'), { title: 'Planning day' }));
+    await assertSucceeds(setDoc(doc(db, 'nrp_members', 'new-team'), { name: 'New', email: 'new@example.test', role: 'team', active: true }));
+    await assertFails(setDoc(doc(db, 'nrp_members', 'new-admin'), { name: 'Admin', email: 'admin@example.test', role: 'admin', active: true }));
+    await assertSucceeds(updateDoc(doc(db, 'nrp_members', COLLEAGUE), { active: false, updatedAt: 'later' }));
+    await assertFails(updateDoc(doc(db, 'nrp_members', COLLEAGUE), { role: 'admin' }));
+  });
+
+  it('lets an employee create only a personal office task', async () => {
+    const db = as(EMPLOYEE);
+    const task = { title: 'Follow up', description: '', kind: 'office', eventId: '', start: '2026-09-21', deadline: '2026-09-22', originalDeadline: '2026-09-22', priority: 'Medium', assigneeIds: [EMPLOYEE], assigneeNames: { [EMPLOYEE]: EMPLOYEE }, progress: { [EMPLOYEE]: { status: 'To do', updatedAt: 'now', completedAt: null } }, status: 'To do', createdBy: EMPLOYEE, createdAt: 'now', updatedAt: 'now', completedAt: null };
+    await assertSucceeds(setDoc(doc(db, 'nrp_tasks', 'self-created'), task));
+    await assertFails(setDoc(doc(db, 'nrp_tasks', 'for-colleague'), { ...task, assigneeIds: [COLLEAGUE], createdBy: EMPLOYEE }));
+    await assertFails(setDoc(doc(db, 'nrp_events', 'employee-event'), { title: 'No' }));
+  });
+
+  it('lets an assignee update only their own task progress', async () => {
+    const db = as(EMPLOYEE);
+    await assertSucceeds(updateDoc(doc(db, 'nrp_tasks', 'mine'), { progress: { [EMPLOYEE]: { status: 'In progress', updatedAt: 'later', completedAt: null } }, status: 'In progress', updatedAt: 'later', completedAt: null }));
+    await assertFails(updateDoc(doc(db, 'nrp_tasks', 'mine'), { deadline: '2099-01-01' }));
+  });
+
+  it('accepts an employee expense only under their own identity', async () => {
+    const valid = { eventId: '', description: 'Taxi', amountPaise: 500, date: '2026-09-21', category: 'Travel', paidBy: EMPLOYEE, paidByName: EMPLOYEE, createdAt: 'now' };
+    await assertSucceeds(setDoc(doc(as(EMPLOYEE), 'nrp_expenses', 'x3'), valid));
+    await assertFails(setDoc(doc(as(EMPLOYEE), 'nrp_expenses', 'x4'), { ...valid, paidBy: COLLEAGUE }));
     await assertFails(setDoc(doc(anonymous(), 'nrp_clients', 'c2'), { name: 'Anyone' }));
+  });
+
+  it('allows the designated email to claim the first admin only atomically', async () => {
+    const db = env.authenticatedContext('first-admin', { email: 'nrpcapital99@gmail.com' }).firestore();
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'nrp_members', 'first-admin'), { name: 'NRP Admin', email: 'nrpcapital99@gmail.com', role: 'admin', active: true, department: 'Administration', createdAt: 'now' });
+    batch.set(doc(db, 'nrp_settings', 'bootstrap'), { uid: 'first-admin', at: 'now' });
+    await assertSucceeds(batch.commit());
   });
 });

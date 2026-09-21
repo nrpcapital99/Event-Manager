@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node --test functions/src/domain.test.js",
-    "test:rules": "firebase emulators:exec --only firestore --project nrp-rules-test \"node --test tests/firestore-rules.test.js\""
+    "test:rules": "npx --yes firebase-tools@latest emulators:exec --only firestore --project nrp-rules-test \"node --test tests/firestore-rules.test.js\""
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -21,7 +21,6 @@
     "clsx": "2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
-    "drizzle-orm": "0.45.2",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^12.19.0",
     "input-otp": "^1.4.2",
@@ -50,7 +49,6 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
-    "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.3.4",
     "react-server-dom-webpack": "19.2.6",
