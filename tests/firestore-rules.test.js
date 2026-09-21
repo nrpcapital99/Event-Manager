@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { after, before, describe, it } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 
 const ADMIN = 'admin1', EMPLOYEE = 'emp1', COLLEAGUE = 'emp2', INACTIVE = 'gone', STRANGER = 'nobody';
 let env;
@@ -175,6 +175,11 @@ describe('writes', () => {
     await assertSucceeds(setDoc(doc(as(EMPLOYEE), 'nrp_expenses', 'x3'), valid));
     await assertFails(setDoc(doc(as(EMPLOYEE), 'nrp_expenses', 'x4'), { ...valid, paidBy: COLLEAGUE }));
     await assertFails(setDoc(doc(anonymous(), 'nrp_clients', 'c2'), { name: 'Anyone' }));
+  });
+
+  it('lets only an admin remove a task', async () => {
+    await assertFails(deleteDoc(doc(as(EMPLOYEE), 'nrp_tasks', 'mine')));
+    await assertSucceeds(deleteDoc(doc(as(ADMIN), 'nrp_tasks', 'theirs')));
   });
 
   it('allows the designated email to claim the first admin only atomically', async () => {

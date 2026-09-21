@@ -1,6 +1,6 @@
 import { deleteApp, initializeApp } from 'firebase/app';
 import { createUserWithEmailAndPassword, deleteUser, getAuth } from 'firebase/auth';
-import { addDoc, collection, doc, getDoc, getDocs, runTransaction, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, runTransaction, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { auth, firebaseConfig } from './firebase';
 import { db } from './firestore';
 import type { Member, PersonProgress, Task } from './model';
@@ -65,6 +65,25 @@ async function updateProgress(data: Data) {
   return { ok: true };
 }
 
+async function completeTask(data: Data) {
+  const actor = await member(); if (actor.role !== 'admin') throw new Error('Only admins can complete a task for the team.');
+  const taskRef = doc(db, 'nrp_tasks', recordId(data.id)), at = now();
+  await runTransaction(db, async transaction => {
+    const snap = await transaction.get(taskRef); if (!snap.exists()) throw new Error('Task not found.');
+    const task = snap.data() as Task;
+    const progress = Object.fromEntries(task.assigneeIds.map(personId => [personId, { status: 'Complete', updatedAt: at, completedAt: at }]));
+    transaction.update(taskRef, { progress, status: 'Complete', updatedAt: at, completedAt: at });
+    const activity = log(taskRef, actor, 'Task completed', 'Marked complete from the admin control board.', at); transaction.set(activity.ref, activity.data);
+  });
+  return { ok: true };
+}
+
+async function removeTask(data: Data) {
+  const actor = await member(); if (actor.role !== 'admin') throw new Error('Only admins can remove tasks.');
+  const taskRef = doc(db, 'nrp_tasks', recordId(data.id)), snap = await getDoc(taskRef); if (!snap.exists()) throw new Error('Task not found.');
+  await deleteDoc(taskRef); return { ok: true };
+}
+
 async function comment(data: Data) {
   const actor = await member(), taskRef = doc(db, 'nrp_tasks', recordId(data.id)), task = await getDoc(taskRef);
   if (!task.exists() || (actor.role !== 'admin' && !(task.data().assigneeIds as string[]).includes(actor.id))) throw new Error('This task is not available to you.');
@@ -118,6 +137,8 @@ export async function mutateFirestore(action: string, data: Data) {
   if (action === 'bootstrapAdmin') return bootstrapAdmin();
   if (action === 'saveTask') return saveTask(data);
   if (action === 'progress') return updateProgress(data);
+  if (action === 'completeTask') return completeTask(data);
+  if (action === 'removeTask') return removeTask(data);
   if (action === 'comment') return comment(data);
   if (action === 'saveEvent') return saveEvent(data);
   if (action === 'addMember') return addMember(data);

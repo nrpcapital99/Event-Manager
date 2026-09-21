@@ -54,7 +54,8 @@ firebase deploy --only firestore:rules,firestore:indexes,hosting
 
 ## Workflows
 
-- Home screen with employee cards and each person’s assigned tasks directly underneath.
+- Home admin control board with one card per employee, assigned/completed counts, and direct add, complete, and remove task controls.
+- Team-wide Gantt chart directly below the employee cards, plus event-specific timelines inside each event.
 - A compact Event button in the top-right opens the separate event workspace.
 - Persistent Home, Office, Clients, and Expenses navigation on desktop and mobile.
 - Tile and list views for tasks, events, guests, clients, expenses, and team members.

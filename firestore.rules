@@ -63,7 +63,7 @@ service cloud.firestore {
     && validStatus(request.resource.data.progress[request.auth.uid].status)
     && validStatus(request.resource.data.status)
    );
-   allow delete: if false;
+   allow delete: if admin();
 
    match /activity/{activityId} {
     allow read: if taskReader(get(/databases/$(database)/documents/nrp_tasks/$(taskId)).data);
