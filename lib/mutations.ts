@@ -57,7 +57,7 @@ async function updateProgress(data: Data) {
   await runTransaction(db, async transaction => {
     const snap = await transaction.get(taskRef); if (!snap.exists()) throw new Error('Task not found.');
     const task = snap.data() as Task; if (!task.assigneeIds.includes(actor.id)) throw new Error('This task is not assigned to you.');
-    const before = task.progress[actor.id]?.status || 'To do'; if (before === 'Complete') throw new Error('Your part is already complete.');
+    const before = task.progress[actor.id]?.status || 'To do';
     const progress = { ...task.progress, [actor.id]: { status: nextStatus, updatedAt: at, completedAt: nextStatus === 'Complete' ? at : null } }, status = overall(task.assigneeIds, progress);
     transaction.update(taskRef, { progress, status, updatedAt: at, completedAt: status === 'Complete' ? at : null });
     const activity = log(taskRef, actor, 'Status updated', `${before} → ${nextStatus}`, at); transaction.set(activity.ref, activity.data);
