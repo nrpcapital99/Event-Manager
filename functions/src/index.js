@@ -37,7 +37,7 @@ async function run(request){
  }
  if(d.action==='addMember'){
   requireAdmin(member);const email=text(d.email,'Email',254).toLowerCase(),name=text(d.name,'Name',100);if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new DomainError('Enter a valid email address.');
-  const password=text(d.password,'Temporary password',128);if(password.length<12)throw new DomainError('Temporary passwords need at least 12 characters.');
+  const password=text(d.password,'Temporary password',128);if(password.length<6)throw new DomainError('Temporary passwords need at least 6 characters.');
   const user=await auth.createUser({email,password,displayName:name});
   try{await c('members').doc(user.uid).set({name,email,role:'team',active:true,department:text(d.department||'','Department',100,false),createdAt:at});}catch(e){await auth.deleteUser(user.uid);throw e;}
   return {id:user.uid};

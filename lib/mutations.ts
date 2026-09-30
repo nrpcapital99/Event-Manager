@@ -101,7 +101,7 @@ async function saveEvent(data: Data) {
 
 async function addMember(data: Data) {
   const actor = await member(); if (actor.role !== 'admin') throw new Error('Only admins can add team members.');
-  const email = text(data.email, 'Email', 254).toLowerCase(), name = text(data.name, 'Name', 100), password = text(data.password, 'Temporary password', 128), role = choice(data.role, ['admin', 'team'] as const, 'access level'); if (password.length < 12) throw new Error('Temporary passwords need at least 12 characters.');
+  const email = text(data.email, 'Email', 254).toLowerCase(), name = text(data.name, 'Name', 100), password = text(data.password, 'Temporary password', 128), role = choice(data.role, ['admin', 'team'] as const, 'access level'); if (password.length < 6) throw new Error('Temporary passwords need at least 6 characters.');
   const secondary = initializeApp(firebaseConfig, 'member-' + Date.now()), secondaryAuth = getAuth(secondary);
   try { const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password); try { await setDoc(doc(db, 'nrp_members', credential.user.uid), { name, email, role, active: true, department: '', createdAt: now() }); } catch (error) { await deleteUser(credential.user); throw error; } return { id: credential.user.uid }; } finally { await deleteApp(secondary); }
 }
