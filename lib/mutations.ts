@@ -10,6 +10,7 @@ const now = () => new Date().toISOString();
 const uid = () => { if (!auth.currentUser) throw new Error('Sign in to continue.'); return auth.currentUser.uid; };
 const text = (value: unknown, label: string, max = 500, required = true) => { if (typeof value !== 'string' || value.length > max || (required && !value.trim())) throw new Error(`${label} is required and must be under ${max} characters.`); return value.trim(); };
 const date = (value: unknown, label: string) => { const result = text(value, label, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(result) || Number.isNaN(Date.parse(result))) throw new Error(`${label} must be a valid date.`); return result; };
+const time = (value: unknown, label: string, required = false) => { const result = text(value || '', label, 5, required); if (result && !/^([01]\d|2[0-3]):[0-5]\d$/.test(result)) throw new Error(`${label} must be a valid time.`); return result; };
 const choice = <T extends string>(value: unknown, choices: readonly T[], label: string): T => { if (typeof value !== 'string' || !choices.includes(value as T)) throw new Error(`Invalid ${label}.`); return value as T; };
 const recordId = (value: unknown) => { if (typeof value !== 'string' || !value || value.includes('/') || value.length > 128) throw new Error('Invalid record identifier.'); return value; };
 const member = async () => { const id = uid(), snap = await getDoc(doc(db, 'nrp_members', id)); if (!snap.exists() || snap.data().active !== true) throw new Error('Workspace access is inactive.'); return { id, ...snap.data() } as Member; };
@@ -94,9 +95,21 @@ async function comment(data: Data) {
 async function saveEvent(data: Data) {
   const actor = await member(); if (actor.role !== 'admin') throw new Error('Only admins can manage events.');
   const at = now(), start = date(data.date, 'Event date'), end = date(data.endDate || data.date, 'End date'); if (end < start) throw new Error('Event end must follow its start.');
+  const startTime = time(data.startTime, 'Start time'), endTime = time(data.endTime, 'End time'), reportingTime = time(data.reportingTime, 'Reporting time'), setupTime = time(data.setupTime, 'Setup time');
+  if (start === end && startTime && endTime && endTime < startTime) throw new Error('Event end time must follow its start time.');
+  const expectedGuests = Number(data.expectedGuests || 0); if (!Number.isSafeInteger(expectedGuests) || expectedGuests < 0 || expectedGuests > 100000) throw new Error('Expected guest count must be from 0 to 100,000.');
   const eventRef = data.id ? doc(db, 'nrp_events', recordId(data.id)) : doc(collection(db, 'nrp_events')), old = await getDoc(eventRef);
-  await setDoc(eventRef, { title: text(data.title, 'Event title', 160), date: start, endDate: end, location: text(data.location || '', 'Location', 300, false), type: text(data.type || 'Event', 'Type', 60), description: text(data.description || '', 'Description', 5000, false), status: choice(data.status, ['Planning', 'Live', 'Complete'] as const, 'event status'), createdAt: old.data()?.createdAt || at, updatedAt: at });
+  await setDoc(eventRef, { title: text(data.title, 'Event title', 160), date: start, endDate: end, startTime, endTime, reportingTime, setupTime, location: text(data.location || '', 'Location', 500, false), type: text(data.type || 'Event', 'Type', 60), description: text(data.description || '', 'Description', 5000, false), objective: text(data.objective || '', 'Objective', 5000, false), audience: text(data.audience || '', 'Audience', 500, false), expectedGuests, organiserName: text(data.organiserName || '', 'Organiser name', 160, false), organiserPhone: text(data.organiserPhone || '', 'Organiser phone', 50, false), dressCode: text(data.dressCode || '', 'Dress code', 200, false), parkingNotes: text(data.parkingNotes || '', 'Parking notes', 3000, false), cateringNotes: text(data.cateringNotes || '', 'Catering notes', 3000, false), equipmentNotes: text(data.equipmentNotes || '', 'Equipment notes', 3000, false), emergencyNotes: text(data.emergencyNotes || '', 'Emergency notes', 3000, false), status: choice(data.status, ['Planning', 'Live', 'Complete'] as const, 'event status'), createdAt: old.data()?.createdAt || at, updatedAt: at });
   return { id: eventRef.id };
+}
+
+async function saveSchedule(data: Data) {
+  const actor = await member(); if (actor.role !== 'admin') throw new Error('Only admins can manage the event flow.');
+  const eventId = recordId(data.eventId), startTime = time(data.startTime, 'Start time', true), endTime = time(data.endTime, 'End time', true); if (endTime < startTime) throw new Error('Flow item end time must follow its start time.');
+  const ownerId = data.ownerId ? recordId(data.ownerId) : '', ownerSnap = ownerId ? await getDoc(doc(db, 'nrp_members', ownerId)) : null; if (ownerId && (!ownerSnap?.exists() || ownerSnap.data().active !== true)) throw new Error('Choose an active owner.');
+  const ownerName = ownerSnap?.exists() ? String(ownerSnap.data().name || '') : '', ref = data.id ? doc(db, 'nrp_schedule', recordId(data.id)) : doc(collection(db, 'nrp_schedule')), old = await getDoc(ref), at = now();
+  await setDoc(ref, { eventId, startTime, endTime, title: text(data.title, 'Flow item', 200), ownerId, ownerName, location: text(data.location || '', 'Location', 300, false), notes: text(data.notes || '', 'Instructions', 4000, false), createdAt: old.data()?.createdAt || at, updatedAt: at });
+  return { id: ref.id };
 }
 
 async function addMember(data: Data) {
@@ -141,6 +154,7 @@ export async function mutateFirestore(action: string, data: Data) {
   if (action === 'removeTask') return removeTask(data);
   if (action === 'comment') return comment(data);
   if (action === 'saveEvent') return saveEvent(data);
+  if (action === 'saveSchedule') return saveSchedule(data);
   if (action === 'addMember') return addMember(data);
   if (action === 'setMemberActive') return setMemberActive(data);
   if (action === 'saveClient') return saveClient(data);

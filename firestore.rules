@@ -79,6 +79,16 @@ service cloud.firestore {
    match /activity/{activityId} { allow read: if admin(); allow write: if false; }
   }
 
+  match /nrp_schedule/{itemId} {
+   allow read: if member();
+   allow create, update: if admin()
+    && request.resource.data.eventId is string
+    && request.resource.data.startTime is string
+    && request.resource.data.endTime is string
+    && request.resource.data.title is string;
+   allow delete: if false;
+  }
+
   match /nrp_clients/{clientId} {
    allow read: if member();
    allow create: if member() && request.resource.data.createdBy == request.auth.uid;
