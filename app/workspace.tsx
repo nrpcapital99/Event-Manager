@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { signOut } from 'firebase/auth';
-import { ArrowLeft, CalendarDays, CheckCircle2, CircleGauge, Clock3, ListTodo, LogOut, Moon, Pencil, Plus, Sparkles, Sun, TrendingUp, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CheckCircle2, CircleGauge, Clock3, GripVertical, ListTodo, LogOut, Moon, Pencil, Plus, Sparkles, Sun, TrendingUp, UserPlus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 export type PreviewData = { member: Member; members: Member[]; events: EventRecord[]; tasks: Task[]; clients: Client[]; guests: Guest[]; expenses: Expense[]; reviews: Review[]; schedules?: ScheduleItem[] };
 type Section = 'overview' | 'events' | 'tasks' | 'team';
 type EventTab = 'Brief' | 'Flow' | 'Tasks' | 'Timeline' | 'Guests' | 'Event day' | 'Expenses' | 'Review';
+const scheduleDuration = (item: ScheduleItem) => { if (item.durationMinutes) return item.durationMinutes; const [sh, sm] = item.startTime.split(':').map(Number), [eh, em] = item.endTime.split(':').map(Number); return Math.max(1, eh * 60 + em - sh * 60 - sm || 15); };
 
 export function Workspace({ member, dark, toggle, previewData }: { member: Member; dark: boolean; toggle: () => void; previewData?: PreviewData }) {
   const preview = !!previewData, admin = member.role === 'admin';
@@ -34,10 +35,10 @@ export function Workspace({ member, dark, toggle, previewData }: { member: Membe
   const members = previewData?.members || (admin ? memberQuery.data : [member]);
   const clients = previewData?.clients || clientQuery.data, guests = previewData?.guests || guestQuery.data, expenses = previewData?.expenses || expenseQuery.data, reviews = previewData?.reviews || reviewQuery.data, schedules = previewData?.schedules || scheduleQuery.data;
   const [section, setSection] = useState<Section>('overview'), [eventId, setEventId] = useState(''), [eventTab, setEventTab] = useState<EventTab>('Brief');
-  const [edit, setEdit] = useState<EditRequest | null>(null), [detailId, setDetailId] = useState(''), [busy, setBusy] = useState(false);
+  const [edit, setEdit] = useState<EditRequest | null>(null), [detailId, setDetailId] = useState(''), [busy, setBusy] = useState(false), [dragId, setDragId] = useState('');
   const selectedEvent = events.find(event => event.id === eventId), selectedTask = tasks.find(task => task.id === detailId);
   const activeEvents = events.filter(event => event.status !== 'Complete'), liveEvents = events.filter(event => event.status === 'Live'), completeEvents = events.filter(event => event.status === 'Complete');
-  const openTasks = tasks.filter(task => task.status !== 'Complete'), eventTasks = tasks.filter(task => task.eventId === eventId), eventGuests = guests.filter(guest => guest.eventId === eventId), eventExpenses = expenses.filter(expense => expense.eventId === eventId), eventSchedule = schedules.filter(item => item.eventId === eventId).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const openTasks = tasks.filter(task => task.status !== 'Complete'), eventTasks = tasks.filter(task => task.eventId === eventId), eventGuests = guests.filter(guest => guest.eventId === eventId), eventExpenses = expenses.filter(expense => expense.eventId === eventId), eventSchedule = schedules.filter(item => item.eventId === eventId).sort((a, b) => ((a.order ?? 9999) - (b.order ?? 9999)) || a.startTime.localeCompare(b.startTime));
   const nextEvent = [...activeEvents].sort((a, b) => a.date.localeCompare(b.date))[0];
   const errors = [eventQuery.error, taskQuery.error, memberQuery.error, clientQuery.error, guestQuery.error, expenseQuery.error, reviewQuery.error, scheduleQuery.error].filter(Boolean);
   const loading = !preview && (eventQuery.loading || taskQuery.loading || clientQuery.loading || guestQuery.loading || expenseQuery.loading || reviewQuery.loading || scheduleQuery.loading || (admin && memberQuery.loading));
@@ -56,6 +57,15 @@ export function Workspace({ member, dark, toggle, previewData }: { member: Membe
     if (preview || !window.confirm(`${person.active ? 'Deactivate' : 'Reactivate'} ${person.name}?`)) return;
     setBusy(true);
     try { await mutate('setMemberActive', { id: person.id, active: !person.active }); toast.success(`${person.name} is now ${person.active ? 'inactive' : 'active'}`); }
+    catch (reason) { toast.error(friendlyError(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function dropFlow(targetId: string) {
+    if (!dragId || dragId === targetId || preview || !admin) { setDragId(''); return; }
+    const ids = eventSchedule.map(item => item.id), from = ids.indexOf(dragId), to = ids.indexOf(targetId); if (from < 0 || to < 0) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]); setDragId(''); setBusy(true);
+    try { await mutate('reorderSchedule', { eventId, ids }); toast.success('Flow reordered and all times recalculated'); }
     catch (reason) { toast.error(friendlyError(reason)); }
     finally { setBusy(false); }
   }
@@ -100,7 +110,7 @@ export function Workspace({ member, dark, toggle, previewData }: { member: Membe
             <section className="panel event-detail-panel"><header><span>03</span><div><h3>Arrival and hospitality</h3><p>Access, parking, food, and guest comfort</p></div></header><dl className="detail-notes"><div><dt>Venue</dt><dd>{selectedEvent.location || 'Not confirmed'}</dd></div><div><dt>Parking and entry</dt><dd>{selectedEvent.parkingNotes || 'No instructions added'}</dd></div><div><dt>Catering</dt><dd>{selectedEvent.cateringNotes || 'No instructions added'}</dd></div></dl></section>
             <section className="panel event-detail-panel"><header><span>04</span><div><h3>Production and backup</h3><p>Equipment, materials, and contingency plan</p></div></header><dl className="detail-notes"><div><dt>Equipment and AV</dt><dd>{selectedEvent.equipmentNotes || 'No instructions added'}</dd></div><div><dt>Emergency and backup</dt><dd>{selectedEvent.emergencyNotes || 'No instructions added'}</dd></div></dl></section>
           </div>}
-          {eventTab === 'Flow' && <section className="panel runbook"><div className="runbook-head"><span>Time</span><span>Activity and instructions</span><span>Owner</span><span>Area</span></div>{eventSchedule.map((item, index) => <button key={item.id} className="runbook-row" onClick={() => admin && setEdit({ type: 'schedule', id: item.id, eventId })}><span className="runbook-time"><strong>{item.startTime}</strong><small>{item.endTime}</small></span><span className="runbook-activity"><b>{index + 1}</b><span><strong>{item.title}</strong><small>{item.notes || 'No additional instructions'}</small></span></span><span>{item.ownerName || 'Unassigned'}</span><span>{item.location || '—'}</span></button>)}{!eventSchedule.length && <div className="runbook-empty"><Clock3/><strong>No event flow added yet</strong><p>Add arrival, registration, sessions, breaks, speeches, meals, and closing so everyone knows exactly what happens when.</p>{admin && <Button onClick={() => setEdit({ type: 'schedule', eventId })}><Plus/>Add first flow item</Button>}</div>}</section>}
+          {eventTab === 'Flow' && <section className="panel runbook"><div className="flow-summary"><div><strong>Content begins {selectedEvent.flowStartTime || selectedEvent.startTime || selectedEvent.reportingTime || selectedEvent.setupTime || '09:00'}</strong><span>{eventSchedule.reduce((sum, item) => sum + scheduleDuration(item), 0)} minutes across {eventSchedule.length} segments</span></div>{admin && <span><GripVertical/>Drag rows to reorder; every time updates automatically</span>}</div><div className="runbook-head"><span>Time</span><span>Topic, speaker, and talking points</span><span>Background / cue</span><span>Owner / area</span></div>{eventSchedule.map((item, index) => <button key={item.id} draggable={admin && !busy} onDragStart={event => { setDragId(item.id); event.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => setDragId('')} onDragOver={event => { if (admin) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; } }} onDrop={event => { event.preventDefault(); void dropFlow(item.id); }} className={`runbook-row ${dragId === item.id ? 'dragging' : ''}`} onClick={() => admin && !dragId && setEdit({ type: 'schedule', id: item.id, eventId })}><span className="runbook-time">{admin && <GripVertical className="drag-handle"/>}<strong>{item.startTime}</strong><small>{item.endTime} · {scheduleDuration(item)} min</small></span><span className="runbook-activity"><b>{index + 1}</b><span><strong>{item.title}</strong><em>{item.speakerName ? `Speaker: ${item.speakerName}` : 'Speaker not assigned'}</em><small>{item.contentPlan || item.notes || 'Add talking points and content details'}</small></span></span><span className="runbook-cue"><strong>{item.backgroundCue || 'No background cue'}</strong><small>{item.notes || 'No handover note'}</small></span><span className="runbook-owner"><strong>{item.ownerName || 'Unassigned'}</strong><small>{item.location || 'Area not set'}</small></span></button>)}{!eventSchedule.length && <div className="runbook-empty"><Clock3/><strong>No event flow added yet</strong><p>Add each topic, speaker, talking points, visual or music cue, and time limit. Dragging the order will then recalculate the whole programme.</p>{admin && <Button onClick={() => setEdit({ type: 'schedule', eventId })}><Plus/>Add first flow item</Button>}</div>}</section>}
           {eventTab === 'Tasks' && <TaskTable tasks={eventTasks.filter(task => task.kind === 'event')} events={events} onOpen={task => setDetailId(task.id)}/ >}
           {eventTab === 'Timeline' && <Gantt tasks={eventTasks} onOpen={task => setDetailId(task.id)}/ >}
           {eventTab === 'Guests' && <GuestBrowser guests={eventGuests} clients={clients} edit={id => setEdit({ type: 'guest', id, eventId })} add={walkIn => setEdit({ type: 'guest', eventId, walkIn })}/ >}
